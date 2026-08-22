@@ -31,3 +31,6 @@ npm-debug.log*
 
 # Next.js
 next-env.d.ts
+
+# Claude Code local config
+.claude/
