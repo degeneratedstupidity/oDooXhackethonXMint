@@ -12,29 +12,43 @@ manages its employees, attendance, time off, and payroll.
 
 ## Getting started
 
-Requires Docker Desktop running.
+The only prerequisite is Docker Desktop, running. Nothing else needs to be installed —
+Python, Node and PostgreSQL all live in containers.
 
 ```bash
-./setup.sh                  # generates .env with fresh secrets
-docker compose up --build   # migrations run automatically on start
+git clone https://github.com/degeneratedstupidity/oDooXhackethonXMint.git
+cd oDooXhackethonXMint
+
+./setup.sh                  # writes .env with freshly generated secrets
+docker compose up --build   # first run pulls images and installs dependencies
 ```
+
+The first build takes a few minutes. Wait for `Starting development server at
+http://0.0.0.0:8000` from the backend and `Ready in …` from the frontend — database
+migrations run automatically before the server starts.
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000/api
+- Health check: http://localhost:8000/api/health/
 
-To explore with realistic data — seven people across the three roles, a month of
-attendance and time off in every state:
+Then load the demo data — seven people across the three roles, a month of attendance, and
+leave requests in every state, including days where several people are away at once:
 
 ```bash
 docker compose exec backend python manage.py seed_demo
 ```
 
 It prints a login for each person; the password for all of them is `Demo@2026`. Sign in as
-the administrator to see everything, including the salary and payslip views.
+the Admin (`OIASME20220001`) to see everything, including the salary and payslip views.
+Re-running the command leaves existing data alone — add `--reset` to rebuild it from
+scratch.
+
+Ports 3000, 8000 and 5432 need to be free. To stop everything, `docker compose down`; add
+`-v` to drop the database volume as well.
 
 `setup.sh` exists because the encryption key must be a valid 32-byte Fernet key — copying
 `.env.example` by hand and leaving the placeholder in place would fail at the first write
-of a bank detail.
+of a bank detail. It refuses to overwrite an existing `.env`.
 
 ## Tests
 
