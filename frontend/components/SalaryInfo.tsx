@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { PayslipPanel } from "./PayslipPanel";
 import { apiFetch } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
 import type { SalaryStructure } from "@/lib/types";
@@ -172,6 +173,8 @@ export function SalaryInfo({ userId, editable }: { userId: number; editable: boo
         </div>
         <p className="mt-2 text-xs text-ink-500">Calculated on basic salary.</p>
       </section>
+
+      <PayslipPanel userId={userId} />
     </div>
   );
 }
