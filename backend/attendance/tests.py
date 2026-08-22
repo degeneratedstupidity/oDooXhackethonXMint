@@ -1,10 +1,12 @@
 from datetime import timedelta
+from decimal import Decimal
 
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from accounts.models import Role
+from accounts.seed import create_salary_structure
 from accounts.tests import make_company, make_user
 
 from .models import Attendance
@@ -45,9 +47,12 @@ class CheckInOutTests(TestCase):
 
 
 class WorkHoursTests(TestCase):
+    """Worked time is time on the premises less the employee's break."""
+
     def setUp(self):
         self.company = make_company()
         self.employee = make_user(self.company, "Priya", "Nair", role=Role.EMPLOYEE)
+        self.structure = create_salary_structure(self.company, self.employee)
 
     def record(self, hours):
         start = timezone.now() - timedelta(hours=hours)
@@ -59,14 +64,27 @@ class WorkHoursTests(TestCase):
             check_out=start + timedelta(hours=hours),
         )
 
-    def test_work_hours_are_derived_from_the_timestamps(self):
-        self.assertEqual(self.record(8).work_hours, 8.0)
+    def test_attended_hours_are_the_raw_time_on_the_premises(self):
+        self.assertEqual(self.record(9).attended_hours, 9.0)
 
-    def test_a_long_day_records_extra_hours(self):
-        self.assertEqual(self.record(10).extra_hours, 2.0)
+    def test_the_break_is_deducted_from_worked_hours(self):
+        # Nine hours in the building, an hour of it on break.
+        self.assertEqual(self.record(9).work_hours, 8.0)
+
+    def test_a_configured_break_is_respected(self):
+        self.structure.break_time_hours = Decimal("0.5")
+        self.structure.save(update_fields=["break_time_hours"])
+        self.assertEqual(self.record(9).work_hours, 8.5)
+
+    def test_a_long_day_records_extra_hours_after_the_break(self):
+        # Eleven hours attended, one on break, so ten worked against an eight-hour day.
+        self.assertEqual(self.record(11).extra_hours, 2.0)
 
     def test_a_short_day_records_no_negative_overtime(self):
         self.assertEqual(self.record(6).extra_hours, 0.0)
+
+    def test_a_day_shorter_than_the_break_does_not_go_negative(self):
+        self.assertEqual(self.record(0.5).work_hours, 0.0)
 
     def test_an_open_record_has_no_hours_yet(self):
         record = Attendance.objects.create(
@@ -76,6 +94,18 @@ class WorkHoursTests(TestCase):
             check_in=timezone.now(),
         )
         self.assertEqual(record.work_hours, 0.0)
+
+    def test_an_employee_without_a_salary_structure_falls_back_to_a_default_break(self):
+        other = make_user(self.company, "Karthik", "Iyer", role=Role.EMPLOYEE)
+        start = timezone.now() - timedelta(hours=9)
+        record = Attendance.objects.create(
+            company=self.company,
+            user=other,
+            date=timezone.localdate(),
+            check_in=start,
+            check_out=start + timedelta(hours=9),
+        )
+        self.assertEqual(record.work_hours, 8.0)
 
 
 class AttendanceVisibilityTests(TestCase):

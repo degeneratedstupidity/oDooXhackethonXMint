@@ -14,6 +14,8 @@ type Row = {
   date: string;
   check_in: string;
   check_out: string | null;
+  attended_hours: number;
+  break_hours: string;
   work_hours: number;
   extra_hours: number;
 };
@@ -115,6 +117,7 @@ export default function AttendancePage() {
               <th className="px-4 py-3 font-medium">{manages ? "Employee" : "Date"}</th>
               <th className="px-4 py-3 font-medium">Check In</th>
               <th className="px-4 py-3 font-medium">Check Out</th>
+              <th className="px-4 py-3 font-medium">Break</th>
               <th className="px-4 py-3 font-medium">Work Hours</th>
               <th className="px-4 py-3 font-medium">Extra Hours</th>
             </tr>
@@ -122,13 +125,13 @@ export default function AttendancePage() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-ink-500">
+                <td colSpan={6} className="px-4 py-12 text-center text-ink-500">
                   Loading…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-12 text-center text-ink-500">
+                <td colSpan={6} className="px-4 py-12 text-center text-ink-500">
                   No attendance recorded for this {manages ? "day" : "month"}.
                 </td>
               </tr>
@@ -147,7 +150,13 @@ export default function AttendancePage() {
                   </td>
                   <td className="px-4 py-3 text-ink-700">{time(row.check_in)}</td>
                   <td className="px-4 py-3 text-ink-700">{time(row.check_out)}</td>
-                  <td className="px-4 py-3 text-ink-700">{row.work_hours.toFixed(2)}</td>
+                  <td className="px-4 py-3 text-ink-500">{Number(row.break_hours).toFixed(2)}</td>
+                  <td
+                    className="px-4 py-3 text-ink-700"
+                    title={`${row.attended_hours.toFixed(2)} h on site less ${Number(row.break_hours).toFixed(2)} h break`}
+                  >
+                    {row.work_hours.toFixed(2)}
+                  </td>
                   <td className="px-4 py-3">
                     {row.extra_hours > 0 ? (
                       <span className="font-medium text-green-700">
