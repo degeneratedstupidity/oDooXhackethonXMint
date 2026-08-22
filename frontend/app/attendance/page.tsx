@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { LoadError } from "@/components/LoadError";
 import { apiFetch } from "@/lib/api";
+import type { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 type Row = {
@@ -41,12 +43,16 @@ export default function AttendancePage() {
   const [month, setMonth] = useState(() => new Date().toISOString().slice(0, 7));
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const query = manages ? `?date=${day}` : `?month=${month}`;
       setRows(await apiFetch<Row[]>(`/attendance/${query}`));
+    } catch (caught) {
+      setError((caught as ApiError).message);
     } finally {
       setLoading(false);
     }
@@ -99,6 +105,8 @@ export default function AttendancePage() {
           </div>
         )}
       </div>
+
+      {error && <LoadError message={error} onRetry={load} />}
 
       <div className="overflow-x-auto rounded-xl border border-ink-200 bg-white">
         <table className="w-full min-w-[640px] text-sm">

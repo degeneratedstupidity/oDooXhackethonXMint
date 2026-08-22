@@ -7,7 +7,9 @@ import { Avatar } from "@/components/Avatar";
 import { StatusDot } from "@/components/StatusDot";
 import type { WorkStatus } from "@/components/StatusDot";
 import { NewEmployeeDialog } from "@/components/NewEmployeeDialog";
+import { LoadError } from "@/components/LoadError";
 import { apiFetch } from "@/lib/api";
+import type { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { CurrentUser } from "@/lib/auth";
 
@@ -18,13 +20,17 @@ export default function EmployeesPage() {
   const [employees, setEmployees] = useState<DirectoryEntry[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const load = useCallback(async (term: string) => {
     setLoading(true);
+    setError(null);
     try {
       const query = term ? `?search=${encodeURIComponent(term)}` : "";
       setEmployees(await apiFetch<DirectoryEntry[]>(`/employees/${query}`));
+    } catch (caught) {
+      setError((caught as ApiError).message);
     } finally {
       setLoading(false);
     }
@@ -58,7 +64,9 @@ export default function EmployeesPage() {
         />
       </div>
 
-      {loading ? (
+      {error ? (
+        <LoadError message={error} onRetry={() => load(search.trim())} />
+      ) : loading ? (
         <p className="py-16 text-center text-sm text-ink-500">Loading employees…</p>
       ) : employees.length === 0 ? (
         <div className="rounded-xl border border-dashed border-ink-300 py-16 text-center">

@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { NewTimeOffDialog } from "@/components/NewTimeOffDialog";
+import { LoadError } from "@/components/LoadError";
 import { apiFetch } from "@/lib/api";
+import type { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 type Request = {
@@ -46,11 +48,13 @@ export default function TimeOffPage() {
   const [requests, setRequests] = useState<Request[]>([]);
   const [balances, setBalances] = useState<Balance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [acting, setActing] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const [requestList, balanceList] = await Promise.all([
         apiFetch<Request[]>("/time-off/"),
@@ -58,6 +62,8 @@ export default function TimeOffPage() {
       ]);
       setRequests(requestList);
       setBalances(balanceList);
+    } catch (caught) {
+      setError((caught as ApiError).message);
     } finally {
       setLoading(false);
     }
@@ -107,6 +113,8 @@ export default function TimeOffPage() {
           </div>
         ))}
       </div>
+
+      {error && <LoadError message={error} onRetry={load} />}
 
       <div className="overflow-x-auto rounded-xl border border-ink-200 bg-white">
         <table className="w-full min-w-[720px] text-sm">
