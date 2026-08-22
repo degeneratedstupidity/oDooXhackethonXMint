@@ -31,7 +31,11 @@ migrations run automatically before the server starts.
 - Backend API: http://localhost:8000/api
 - Health check: http://localhost:8000/api/health/
 
-Then load the demo data — seven people across the three roles, a month of attendance, and
+### You need an account before you can sign in
+
+A new database is empty, so **there is nobody to log in as yet**. Take either route:
+
+**Load the demo data** — seven people across the three roles, a month of attendance, and
 leave requests in every state, including days where several people are away at once:
 
 ```bash
@@ -39,9 +43,11 @@ docker compose exec backend python manage.py seed_demo
 ```
 
 It prints a login for each person; the password for all of them is `Demo@2026`. Sign in as
-the Admin (`OIASME20220001`) to see everything, including the salary and payslip views.
-Re-running the command leaves existing data alone — add `--reset` to rebuild it from
-scratch.
+the Admin, `OIASME20220001`, to see everything including the salary and payslip views.
+Re-running the command leaves existing data alone — add `--reset` to rebuild from scratch.
+
+**Or sign up at http://localhost:3000/signup**, which creates a company and makes you its
+Admin. You start with an empty directory and add people yourself.
 
 Ports 3000, 8000 and 5432 need to be free. To stop everything, `docker compose down`; add
 `-v` to drop the database volume as well.
@@ -49,6 +55,29 @@ Ports 3000, 8000 and 5432 need to be free. To stop everything, `docker compose d
 `setup.sh` exists because the encryption key must be a valid 32-byte Fernet key — copying
 `.env.example` by hand and leaving the placeholder in place would fail at the first write
 of a bank detail. It refuses to overwrite an existing `.env`.
+
+### If something does not work
+
+**"Incorrect login ID or password" on a fresh clone.** The database is empty until you run
+`seed_demo` or sign up — see above. The message is the same whether the password is wrong
+or the account does not exist, which is deliberate: telling an anonymous caller which login
+IDs are real would help someone work through them.
+
+**"Request was throttled."** Sign-in allows ten attempts a minute. Wait a minute and try
+again. Repeated failed attempts while the database was still empty are enough to trigger
+it, so this often follows the problem above rather than being a separate one.
+
+**The backend cannot reach the database.** `db/init.sh` creates the restricted role only
+the first time the database volume is created. If you edited `.env` after the first
+`docker compose up`, the role and the password no longer agree. Rebuild the volume:
+
+```bash
+docker compose down -v && docker compose up --build
+```
+
+**A port is already in use.** 3000, 8000 and 5432 all need to be free — a local Postgres
+on 5432 is the usual culprit. Stop it, or change the host side of the mapping in
+`docker-compose.yml`.
 
 ## Tests
 
