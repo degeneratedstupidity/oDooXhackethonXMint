@@ -15,3 +15,13 @@ def seed_default_time_off_types(company):
     TimeOffType.objects.bulk_create(
         [TimeOffType(company=company, **values) for values in DEFAULT_TIME_OFF_TYPES]
     )
+
+
+def create_salary_structure(company, user):
+    """Every employee gets a structure with the standard components, on a zero wage
+    until an administrator sets one."""
+    from payroll.models import SalaryStructure
+
+    structure = SalaryStructure.objects.create(company=company, user=user)
+    structure.apply_default_components()
+    return structure

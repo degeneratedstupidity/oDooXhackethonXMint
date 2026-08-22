@@ -52,5 +52,23 @@ frontend/    Next.js app
 
 ## Design decisions
 
-Where the specification left room for interpretation, the reasoning behind our choices is documented here
-as the project develops.
+Where the specification left room for interpretation, here is what we chose and why.
+
+**Fixed Allowance follows the stated formula, not the illustrated figure.** The specification gives the
+rule `Fixed allowance = wage - total of all the components`, but the accompanying mockup shows ₹2,918.00
+against a ₹50,000 wage. Those disagree: the mockup's own components sum to ₹48,750, leaving ₹1,250
+unaccounted for, whereas the stated rule yields ₹4,168. We implemented the rule, because the specification
+separately requires that components never exceed the wage, and only the rule guarantees the components sum
+to exactly the wage at every wage value. On the worked example, every other component matches the mockup
+precisely (Basic ₹25,000, HRA ₹12,500, Standard ₹4,167, Bonus and LTA ₹2,082.50).
+
+**Row-level security covers data tables, not the user table.** Authentication has to resolve a login ID
+before the user's company is known, so a policy on the user table would make every login fail. That table
+is scoped in the application layer instead; everything else is enforced by Postgres.
+
+**Salary is Admin-only; HR Officers are not.** The specification marks the Salary Info tab as
+administrator-only, so HR Officers can manage people, attendance and leave, but the salary endpoints
+return 403 for them.
+
+**Leave is counted in calendar days.** Requests count both end dates inclusively. Public-holiday and
+weekend exclusion would need a company calendar the specification does not define.

@@ -4,7 +4,7 @@ from rest_framework import serializers
 
 from .models import BankDetail, Company, EmployeeProfile, Role, User
 from .tenancy import set_current_company
-from .seed import seed_default_time_off_types
+from .seed import create_salary_structure, seed_default_time_off_types
 
 
 class CompanySignUpSerializer(serializers.Serializer):
@@ -69,6 +69,7 @@ class CompanySignUpSerializer(serializers.Serializer):
         )
         EmployeeProfile.objects.create(company=company, user=user)
         BankDetail.objects.create(company=company, user=user)
+        create_salary_structure(company, user)
         seed_default_time_off_types(company)
         return user
 
@@ -212,6 +213,7 @@ class EmployeeCreateSerializer(serializers.Serializer):
             manager=validated_data.get("manager"),
         )
         BankDetail.objects.create(company=company, user=user)
+        create_salary_structure(company, user)
 
         # Surfaced once, so the administrator can pass the credentials on.
         self.generated_password = password

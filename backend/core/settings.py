@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     "accounts",
     "attendance",
     "timeoff",
+    "payroll",
 ]
 
 MIDDLEWARE = [
