@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Field } from "./Field";
 import { apiFetch } from "@/lib/api";
 import type { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 
 type Credentials = { login_id: string; password: string };
+type Colleague = { id: number; full_name: string; job_position: string };
 
 /** Add an employee. The system generates their login ID and first password, so the
     dialog's job on success is to show those credentials once. */
@@ -31,6 +32,12 @@ export function NewEmployeeDialog({
   const [error, setError] = useState<ApiError | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [credentials, setCredentials] = useState<Credentials | null>(null);
+  const [colleagues, setColleagues] = useState<Colleague[]>([]);
+  const [managerId, setManagerId] = useState("");
+
+  useEffect(() => {
+    apiFetch<Colleague[]>("/employees/").then(setColleagues).catch(() => setColleagues([]));
+  }, []);
 
   const update = (key: keyof typeof values) => (value: string) =>
     setValues((current) => ({ ...current, [key]: value }));
@@ -42,7 +49,10 @@ export function NewEmployeeDialog({
     try {
       const result = await apiFetch<{ credentials: Credentials }>("/employees/", {
         method: "POST",
-        body: JSON.stringify(values),
+        body: JSON.stringify({
+          ...values,
+          manager: managerId ? Number(managerId) : null,
+        }),
       });
       setCredentials(result.credentials);
     } catch (caught) {
@@ -153,6 +163,30 @@ export function NewEmployeeDialog({
                 errors={fieldErrors.date_of_joining}
                 required
               />
+
+              <div className="space-y-1.5">
+                <label htmlFor="manager" className="block text-sm font-medium text-ink-700">
+                  Manager
+                </label>
+                <select
+                  id="manager"
+                  value={managerId}
+                  onChange={(event) => setManagerId(event.target.value)}
+                  className="w-full rounded-lg border border-ink-300 px-3 py-2.5 text-sm outline-none
+                    transition focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                >
+                  <option value="">No manager</option>
+                  {colleagues.map((colleague) => (
+                    <option key={colleague.id} value={colleague.id}>
+                      {colleague.full_name}
+                      {colleague.job_position ? ` — ${colleague.job_position}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {fieldErrors.manager && (
+                  <p className="text-xs text-red-600">{fieldErrors.manager[0]}</p>
+                )}
+              </div>
 
               <div className="space-y-1.5">
                 <label htmlFor="role" className="block text-sm font-medium text-ink-700">
