@@ -93,6 +93,12 @@ export default function EmployeesPage() {
                     {employee.job_position || "—"}
                   </p>
                   <p className="truncate text-xs text-ink-400">{employee.login_id}</p>
+                  {employee.department && (
+                    <span className="mt-1.5 inline-block max-w-full truncate rounded-full bg-ink-100
+                      px-2 py-0.5 text-[11px] font-medium text-ink-600">
+                      {employee.department}
+                    </span>
+                  )}
                 </div>
                 <StatusDot status={employee.work_status} />
               </Link>
