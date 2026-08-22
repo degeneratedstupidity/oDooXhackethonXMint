@@ -25,6 +25,8 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "accounts",
+    "attendance",
+    "timeoff",
 ]
 
 MIDDLEWARE = [
