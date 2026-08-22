@@ -13,6 +13,7 @@ searched on.
 from cryptography.fernet import Fernet, InvalidToken
 from django.conf import settings
 from django.db import models
+from rest_framework import serializers
 
 
 def _fernet():
@@ -50,3 +51,26 @@ class EncryptedCharField(models.TextField):
             # Pre-existing plaintext, or a value written with a different key. Return it
             # as-is rather than crashing the whole response.
             return value
+
+
+class RelativeFileURLMixin:
+    """Serializer fields that return a path rather than an absolute URL.
+
+    DRF builds absolute URLs from the request host. Inside Docker that host is
+    `backend:8000`, which is reachable from the frontend container but not from a
+    browser. A relative path resolves against whatever origin the page was served from,
+    and Next proxies `/media` through to Django, so the file is reachable either way.
+    """
+
+    def to_representation(self, value):
+        if not value:
+            return None
+        return value.url
+
+
+class RelativeImageField(RelativeFileURLMixin, serializers.ImageField):
+    pass
+
+
+class RelativeFileField(RelativeFileURLMixin, serializers.FileField):
+    pass

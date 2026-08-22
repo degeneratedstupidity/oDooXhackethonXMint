@@ -2,6 +2,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
 from rest_framework import serializers
 
+from .fields import RelativeImageField
 from .models import BankDetail, Company, EmployeeProfile, Role, User
 from .tenancy import set_current_company
 from .seed import create_salary_structure, seed_default_time_off_types
@@ -78,9 +79,10 @@ class UserSummarySerializer(serializers.ModelSerializer):
     """The shape the frontend needs to render the current user and the directory cards."""
 
     full_name = serializers.CharField(read_only=True)
+    avatar = RelativeImageField(read_only=True)
     work_status = serializers.SerializerMethodField()
     company_name = serializers.CharField(source="company.name", read_only=True)
-    company_logo = serializers.ImageField(source="company.logo", read_only=True)
+    company_logo = RelativeImageField(source="company.logo", read_only=True)
     job_position = serializers.CharField(source="profile.job_position", read_only=True, default="")
     department = serializers.CharField(source="profile.department", read_only=True, default="")
 
@@ -97,6 +99,8 @@ class UserSummarySerializer(serializers.ModelSerializer):
             "role",
             "avatar",
             "date_of_joining",
+            "is_active",
+            "deactivated_on",
             "must_change_password",
             "company_name",
             "company_logo",
@@ -287,6 +291,7 @@ class EmployeeDetailSerializer(serializers.ModelSerializer):
 
     full_name = serializers.CharField(read_only=True)
     company_name = serializers.CharField(source="company.name", read_only=True)
+    avatar = RelativeImageField(read_only=True)
     profile = EmployeeProfileSerializer()
     bank_detail = BankDetailSerializer()
 

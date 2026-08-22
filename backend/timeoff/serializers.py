@@ -1,6 +1,8 @@
 from django.utils import timezone
 from rest_framework import serializers
 
+from accounts.fields import RelativeFileField
+
 from .models import PublicHoliday, TimeOffRequest, TimeOffStatus, TimeOffType
 
 
@@ -23,6 +25,7 @@ class TimeOffRequestSerializer(serializers.ModelSerializer):
     login_id = serializers.CharField(source="user.login_id", read_only=True)
     type_name = serializers.CharField(source="type.name", read_only=True)
     days = serializers.IntegerField(read_only=True)
+    attachment = RelativeFileField(required=False, allow_null=True)
 
     class Meta:
         model = TimeOffRequest

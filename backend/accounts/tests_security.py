@@ -216,3 +216,77 @@ class TenantScopeOnPlainViewsTests(TestCase):
         response = self.client.get("/api/me/")
         self.assertEqual(response.data["job_position"], "Chief People Officer")
         self.assertEqual(response.data["department"], "Leadership")
+
+
+class DeactivationTests(TestCase):
+    """Leaving the company must not erase the record of what someone was paid."""
+
+    def setUp(self):
+        self.company = make_company()
+        self.admin = make_user(self.company, "Asha", "Menon", role=Role.ADMIN)
+        self.employee = make_user(self.company, "Priya", "Nair", role=Role.EMPLOYEE)
+        Attendance.objects.create(
+            company=self.company,
+            user=self.employee,
+            date=date(2026, 6, 1),
+            check_in=timezone.now(),
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.admin)
+
+    def test_deactivating_keeps_the_attendance_history(self):
+        self.client.delete(f"/api/employees/{self.employee.id}/")
+        self.assertEqual(Attendance.objects.filter(user=self.employee).count(), 1)
+
+    def test_deactivating_keeps_the_user_record(self):
+        self.client.delete(f"/api/employees/{self.employee.id}/")
+        self.employee.refresh_from_db()
+        self.assertFalse(self.employee.is_active)
+        self.assertIsNotNone(self.employee.deactivated_on)
+
+    def test_a_former_employee_is_hidden_from_the_directory(self):
+        self.client.delete(f"/api/employees/{self.employee.id}/")
+        listed = [row["id"] for row in self.client.get("/api/employees/").data]
+        self.assertNotIn(self.employee.id, listed)
+
+    def test_a_former_employee_can_still_be_listed_on_request(self):
+        self.client.delete(f"/api/employees/{self.employee.id}/")
+        listed = [row["id"] for row in self.client.get("/api/employees/?include_inactive=true").data]
+        self.assertIn(self.employee.id, listed)
+
+    def test_a_former_employee_can_be_reactivated(self):
+        """Their record has to stay reachable by id, or reactivation is impossible."""
+        self.client.delete(f"/api/employees/{self.employee.id}/")
+        response = self.client.post(f"/api/employees/{self.employee.id}/reactivate/")
+        self.assertEqual(response.status_code, 200)
+        self.employee.refresh_from_db()
+        self.assertTrue(self.employee.is_active)
+
+    def test_nobody_deactivates_themselves(self):
+        response = self.client.delete(f"/api/employees/{self.admin.id}/")
+        self.assertEqual(response.status_code, 403)
+
+    def test_an_employee_cannot_deactivate_anyone(self):
+        self.client.force_authenticate(user=self.employee)
+        response = self.client.delete(f"/api/employees/{self.admin.id}/")
+        self.assertEqual(response.status_code, 403)
+
+
+class RelativeMediaUrlTests(TestCase):
+    """File URLs must resolve from a browser, not only from inside the Docker network."""
+
+    def setUp(self):
+        self.company = make_company()
+        self.user = make_user(self.company, "Asha", "Menon", role=Role.ADMIN)
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_an_avatar_url_is_a_path_not_an_absolute_url(self):
+        self.user.avatar = "avatars/example.png"
+        self.user.save(update_fields=["avatar"])
+        avatar = self.client.get("/api/me/").data["avatar"]
+        self.assertTrue(avatar.startswith("/media/"), avatar)
+        self.assertNotIn("http://", avatar)
+
+    def test_a_missing_avatar_is_null(self):
+        self.assertIsNone(self.client.get("/api/me/").data["avatar"])

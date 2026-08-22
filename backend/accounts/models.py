@@ -92,7 +92,11 @@ class User(AbstractBaseUser, PermissionsMixin):
     # True until the employee replaces the system-generated password.
     must_change_password = models.BooleanField(default=False)
 
+    # False once someone leaves. Their records are kept: attendance underpins past
+    # payslips, so an employee is deactivated rather than deleted.
     is_active = models.BooleanField(default=True)
+    deactivated_on = models.DateField(null=True, blank=True)
+
     is_staff = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -18,6 +18,7 @@ type Request = {
   end_date: string;
   days: number;
   reason: string;
+  attachment: string | null;
   status: "to_approve" | "approved" | "refused";
 };
 
@@ -132,19 +133,20 @@ export default function TimeOffPage() {
               <th className="px-4 py-3 font-medium">End Date</th>
               <th className="px-4 py-3 font-medium">Type</th>
               <th className="px-4 py-3 font-medium">Status</th>
+              <th className="px-4 py-3 font-medium">Reason</th>
               {manages && <th className="px-4 py-3 font-medium">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-ink-500">
+                <td colSpan={7} className="px-4 py-12 text-center text-ink-500">
                   Loading…
                 </td>
               </tr>
             ) : requests.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-12 text-center text-ink-500">
+                <td colSpan={7} className="px-4 py-12 text-center text-ink-500">
                   No time off requests yet.
                 </td>
               </tr>
@@ -163,13 +165,30 @@ export default function TimeOffPage() {
                     {new Date(request.end_date).toLocaleDateString()}
                     <span className="ml-1.5 text-xs text-ink-400">({request.days}d)</span>
                   </td>
-                  <td className="px-4 py-3 text-brand-700">{request.type_name}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-brand-700">{request.type_name}</span>
+                    {request.attachment && (
+                      <a
+                        href={request.attachment}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ml-2 inline-flex items-center gap-1 rounded bg-ink-100 px-1.5 py-0.5
+                          text-xs text-ink-600 hover:bg-ink-200 hover:text-ink-900"
+                        title="Open the supporting document"
+                      >
+                        📎 Document
+                      </a>
+                    )}
+                  </td>
                   <td className="px-4 py-3">
                     <span
                       className={`rounded-full px-2.5 py-1 text-xs font-medium ${STATUS_STYLES[request.status]}`}
                     >
                       {STATUS_LABELS[request.status]}
                     </span>
+                  </td>
+                  <td className="max-w-[16rem] truncate px-4 py-3 text-ink-600" title={request.reason}>
+                    {request.reason || <span className="text-ink-400">—</span>}
                   </td>
                   {manages && (
                     <td className="px-4 py-3">

@@ -1,5 +1,6 @@
 from django.db import connection
 from django.db.models import Q
+from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
@@ -102,6 +103,16 @@ class EmployeeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             .order_by("first_name", "last_name")
         )
 
+        # Former employees are hidden from the directory listing but stay reachable by
+        # id, so their history can be opened and they can be reactivated. Filtering them
+        # out of a detail lookup would make reactivation impossible.
+        hide_inactive = (
+            self.action == "list"
+            and self.request.query_params.get("include_inactive") != "true"
+        )
+        if hide_inactive:
+            queryset = queryset.filter(is_active=True)
+
         search = self.request.query_params.get("search", "").strip()
         if search:
             queryset = queryset.filter(
@@ -139,6 +150,34 @@ class EmployeeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
         target.avatar = image
         target.save(update_fields=["avatar"])
+        return Response(UserSummarySerializer(target).data)
+
+    def destroy(self, request, *args, **kwargs):
+        """Deactivate rather than delete.
+
+        Attendance records underpin past payslips and leave records are part of an
+        employee's history, so removing the row would erase the evidence for pay already
+        made. Deactivating keeps all of it and stops the account being used.
+        """
+        target = self.get_object()
+        if target.id == request.user.id:
+            raise PermissionDenied("You cannot deactivate your own account.")
+
+        target.is_active = False
+        target.deactivated_on = timezone.localdate()
+        target.save(update_fields=["is_active", "deactivated_on"])
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=["post"])
+    def reactivate(self, request, pk=None):
+        """Undo a deactivation, for someone who returns or was deactivated by mistake."""
+        if not request.user.can_manage_people:
+            raise PermissionDenied("Only an administrator or HR officer can do this.")
+
+        target = self.get_object()
+        target.is_active = True
+        target.deactivated_on = None
+        target.save(update_fields=["is_active", "deactivated_on"])
         return Response(UserSummarySerializer(target).data)
 
     def update(self, request, *args, **kwargs):
