@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { LeaveCalendar } from "@/components/LeaveCalendar";
 import { NewTimeOffDialog } from "@/components/NewTimeOffDialog";
 import { LoadError } from "@/components/LoadError";
 import { apiFetch } from "@/lib/api";
@@ -115,6 +116,12 @@ export default function TimeOffPage() {
       </div>
 
       {error && <LoadError message={error} onRetry={load} />}
+
+      {!loading && requests.length > 0 && (
+        <div className="mb-6">
+          <LeaveCalendar requests={requests} />
+        </div>
+      )}
 
       <div className="overflow-x-auto rounded-xl border border-ink-200 bg-white">
         <table className="w-full min-w-[720px] text-sm">
