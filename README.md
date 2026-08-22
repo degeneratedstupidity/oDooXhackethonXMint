@@ -22,6 +22,18 @@ docker compose up --build
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000/api
 
+## Tests
+
+```bash
+docker compose exec backend python manage.py test
+```
+
+71 tests covering login ID generation, the salary computation rules, payslip derivation
+from attendance, time off validation and approval, attendance hours, role permissions, and
+the two security foundations. The row-level security tests run against the real policies —
+the test database is built by the same migrations and Django connects as the same
+non-superuser role — so they fail if tenant isolation ever regresses.
+
 ## Features
 
 - **Multi-tenant companies** — sign-up creates a company and its first Admin. Employees are created by

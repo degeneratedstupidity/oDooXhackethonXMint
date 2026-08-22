@@ -64,6 +64,8 @@ def _days_in_month(request, year, month):
 def compute_payslip(structure, year, month):
     """Build the payslip for one employee and month."""
     user = structure.user
+    # Model defaults can hand back a plain int, which has no decimal arithmetic.
+    wage = Decimal(str(structure.monthly_wage))
     working_days = _working_days(year, month, structure.working_days_per_week)
 
     attendance_dates = set(
@@ -114,9 +116,7 @@ def compute_payslip(structure, year, month):
     payable_days = max(0, working_days - unpaid_leave_days - unaccounted_days)
 
     per_day_rate = (
-        (structure.monthly_wage / working_days).quantize(Decimal("0.01"))
-        if working_days
-        else Decimal("0")
+        (wage / working_days).quantize(Decimal("0.01")) if working_days else Decimal("0")
     )
     gross_pay = (per_day_rate * payable_days).quantize(Decimal("0.01"))
 
