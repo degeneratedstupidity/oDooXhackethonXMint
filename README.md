@@ -42,11 +42,24 @@ of a bank detail.
 docker compose exec backend python manage.py test
 ```
 
-71 tests covering login ID generation, the salary computation rules, payslip derivation
-from attendance, time off validation and approval, attendance hours, role permissions, and
-the two security foundations. The row-level security tests run against the real policies —
-the test database is built by the same migrations and Django connects as the same
-non-superuser role — so they fail if tenant isolation ever regresses.
+90 tests covering:
+- Login ID generation and sequencing (no duplicates across concurrent creation)
+- Salary computation rules, including the specification's worked example (₹50,000 wage)
+- Payslip derivation from attendance with dynamic day counts
+- Time off validation, overlap detection, approval workflow
+- Attendance hour calculation with configurable breaks
+- Work hours deductions for leave and public holidays
+- Role-based access control (Admin, HR Officer, Employee)
+- Deactivation and reactivation of employees
+- Row-level security at the database level (proven against real Postgres policies)
+- Field-level encryption at rest (verified by reading raw database columns)
+- Login rate limiting
+- File URL resolution through proxies
+
+The row-level security tests run against the real policies — the test database is built by
+the same migrations and Django connects as the same non-superuser role — so they fail if
+tenant isolation ever regresses. Encryption tests read the raw database column to confirm
+ciphertext is stored, not plaintext.
 
 ## Features
 
@@ -108,3 +121,24 @@ holiday list, so that set is seeded for a new company, but companies observe dif
 in different regions — the model is per company and editable rather than global. A holiday is excluded from
 working days and never counted as an absence, so nobody loses a day's pay for a day nobody was expected to
 work.
+
+**Employees are deactivated, never deleted.** Attendance and payroll are records of what a person was paid —
+deleting an employee would erase the evidence behind payslips already issued and break statutory retention
+requirements. Deactivation marks an account inactive (sign-in fails), hides it from the directory by default,
+but keeps every record. The person can be reactivated if they return or were deactivated by mistake, and
+their former manager or HR Officer can still open their profile to review history.
+
+**Work hours are deducted by the employee's configured break.** The specification asks for attendance shown
+against working time including breaks. An employee in the building 09:00–18:00 with a one-hour break has
+worked eight hours, not nine. A salary structure's `break_time_hours` field controls this; if unset, one
+hour is assumed. Days shorter than the break clamp at zero rather than going negative.
+
+**Uploaded files return relative paths, not absolute URLs.** Inside Docker, the backend is reachable as
+`backend:8000` from containers but not from a browser. Attachment URLs (sick leave certificates) and
+avatar image URLs now return paths like `/media/avatars/...` that resolve against the origin the page was
+loaded from. The frontend proxies `/media` to Django, so uploads are reachable either way.
+
+**Login attempts are rate limited.** Login IDs follow a documented format and can be enumerated. Without a
+limit on attempts, the password is the only barrier to an account. Sign-in allows ten attempts per minute —
+generous for mistyping, useless for a script — with sign-up and password changes bounded too (5 and 10 per
+minute respectively).
