@@ -218,3 +218,111 @@ class EmployeeCreateSerializer(serializers.Serializer):
         # Surfaced once, so the administrator can pass the credentials on.
         self.generated_password = password
         return user
+
+
+class BankDetailSerializer(serializers.ModelSerializer):
+    """Bank and statutory identifiers. Stored encrypted; see accounts/fields.py."""
+
+    class Meta:
+        model = BankDetail
+        fields = ["bank_name", "account_number", "ifsc_code", "pan_number", "uan_number"]
+
+    def validate_ifsc_code(self, value):
+        if value and len(value) != 11:
+            raise serializers.ValidationError("An IFSC code is 11 characters long.")
+        return value.upper()
+
+    def validate_pan_number(self, value):
+        if value and len(value) != 10:
+            raise serializers.ValidationError("A PAN is 10 characters long.")
+        return value.upper()
+
+    def validate_account_number(self, value):
+        if value and not value.isdigit():
+            raise serializers.ValidationError("An account number contains digits only.")
+        return value
+
+
+class EmployeeProfileSerializer(serializers.ModelSerializer):
+    manager_name = serializers.CharField(source="manager.full_name", read_only=True, default="")
+
+    class Meta:
+        model = EmployeeProfile
+        fields = [
+            "job_position",
+            "department",
+            "manager",
+            "manager_name",
+            "location",
+            "date_of_birth",
+            "residing_address",
+            "nationality",
+            "personal_email",
+            "gender",
+            "marital_status",
+            "about",
+            "what_i_love_about_my_job",
+            "interests_and_hobbies",
+            "skills",
+            "certifications",
+        ]
+
+    def validate_manager(self, value):
+        if value and value.company_id != self.context["request"].user.company_id:
+            raise serializers.ValidationError("That manager is not in your company.")
+        return value
+
+    def validate_skills(self, value):
+        if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+            raise serializers.ValidationError("Skills must be a list of text values.")
+        return value
+
+    validate_certifications = validate_skills
+
+
+class EmployeeDetailSerializer(serializers.ModelSerializer):
+    """The full profile page: identity, work info, private info and bank details."""
+
+    full_name = serializers.CharField(read_only=True)
+    company_name = serializers.CharField(source="company.name", read_only=True)
+    profile = EmployeeProfileSerializer()
+    bank_detail = BankDetailSerializer()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "login_id",
+            "first_name",
+            "last_name",
+            "full_name",
+            "email",
+            "phone",
+            "role",
+            "avatar",
+            "date_of_joining",
+            "company_name",
+            "profile",
+            "bank_detail",
+        ]
+        read_only_fields = ["id", "login_id", "full_name", "company_name", "date_of_joining"]
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop("profile", None)
+        bank_data = validated_data.pop("bank_detail", None)
+
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        instance.save()
+
+        if profile_data:
+            for field, value in profile_data.items():
+                setattr(instance.profile, field, value)
+            instance.profile.save()
+
+        if bank_data:
+            for field, value in bank_data.items():
+                setattr(instance.bank_detail, field, value)
+            instance.bank_detail.save()
+
+        return instance

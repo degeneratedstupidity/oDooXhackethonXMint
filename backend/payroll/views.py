@@ -22,7 +22,10 @@ class SalaryStructureViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     http_method_names = ["get", "patch", "put", "head", "options"]
 
     def get_queryset(self):
-        return SalaryStructure.objects.select_related("user").prefetch_related("components")
+        queryset = SalaryStructure.objects.select_related("user").prefetch_related("components")
+        if employee := self.request.query_params.get("user"):
+            queryset = queryset.filter(user_id=employee)
+        return queryset
 
     @action(detail=True, methods=["patch"], url_path="components/(?P<component_id>[^/.]+)")
     def update_component(self, request, pk=None, component_id=None):

@@ -1,6 +1,7 @@
 from django.db import connection
 from django.db.models import Q
 from rest_framework import status, viewsets
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -13,6 +14,7 @@ from .serializers import (
     ChangePasswordSerializer,
     CompanySignUpSerializer,
     EmployeeCreateSerializer,
+    EmployeeDetailSerializer,
     UserSummarySerializer,
 )
 from .tenancy import TenantScopedViewSetMixin
@@ -74,8 +76,13 @@ class EmployeeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
     page for all roles — but only Admin and HR Officers can add people.
     """
 
-    serializer_class = UserSummarySerializer
     permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        # The list is the directory grid; a single record is the full profile page.
+        if self.action in ("retrieve", "update", "partial_update"):
+            return EmployeeDetailSerializer
+        return UserSummarySerializer
 
     def get_queryset(self):
         """Scoped to the caller's company.
@@ -86,7 +93,7 @@ class EmployeeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         """
         queryset = (
             User.objects.filter(company=self.request.user.company)
-            .select_related("company", "profile")
+            .select_related("company", "profile", "bank_detail")
             .order_by("first_name", "last_name")
         )
 
@@ -106,6 +113,18 @@ class EmployeeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         if self.action in ("create", "destroy"):
             return [IsAuthenticated(), CanManagePeople()]
         return super().get_permissions()
+
+    def update(self, request, *args, **kwargs):
+        """Employees may edit their own profile; Admin and HR may edit anyone's."""
+        target = self.get_object()
+        if target.id != request.user.id and not request.user.can_manage_people:
+            raise PermissionDenied("You can only edit your own profile.")
+        # Only Admin and HR decide someone's role, and nobody changes their own.
+        if "role" in request.data and (
+            not request.user.is_admin or target.id == request.user.id
+        ):
+            raise PermissionDenied("You cannot change this role.")
+        return super().update(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
         serializer = EmployeeCreateSerializer(data=request.data, context={"request": request})
