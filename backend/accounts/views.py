@@ -17,7 +17,7 @@ from .serializers import (
     EmployeeDetailSerializer,
     UserSummarySerializer,
 )
-from .tenancy import TenantScopedViewSetMixin
+from .tenancy import TenantScopedMixin, TenantScopedViewSetMixin
 
 
 def tokens_for(user):
@@ -50,8 +50,12 @@ class SignUpView(APIView):
         )
 
 
-class MeView(APIView):
-    """The signed-in user, for bootstrapping the frontend session."""
+class MeView(TenantScopedMixin, APIView):
+    """The signed-in user, for bootstrapping the frontend session.
+
+    Scoped like every other view: without it row-level security hides the caller's own
+    profile row and the response comes back with the profile fields empty.
+    """
 
     permission_classes = [IsAuthenticated]
 

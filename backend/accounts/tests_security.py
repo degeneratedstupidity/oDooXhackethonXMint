@@ -9,7 +9,7 @@ from rest_framework.test import APIClient
 from attendance.models import Attendance
 from django.utils import timezone
 
-from .models import BankDetail, EmployeeProfile, Role
+from .models import BankDetail, EmployeeProfile, Role, User
 from .tenancy import set_current_company
 from .tests import make_company, make_user
 
@@ -189,3 +189,30 @@ class RolePermissionTests(TestCase):
             f"/api/employees/{self.admin.id}/", {"role": "employee"}, format="json"
         )
         self.assertEqual(response.status_code, 403)
+
+
+class TenantScopeOnPlainViewsTests(TestCase):
+    """Views that are not viewsets still need the company scope set.
+
+    Without it, row-level security hides the caller's own profile row and the response
+    comes back with the profile fields empty — which is what happened before MeView was
+    given the scoping mixin.
+    """
+
+    def setUp(self):
+        self.company = make_company()
+        self.user = make_user(self.company, "Asha", "Menon", role=Role.ADMIN)
+        profile = EmployeeProfile.objects.get(user=self.user)
+        profile.job_position = "Chief People Officer"
+        profile.department = "Leadership"
+        profile.save()
+        # Re-fetch so the request sees the saved profile rather than the relation cached
+        # on the object created in make_user.
+        self.user = User.objects.get(pk=self.user.pk)
+        self.client = APIClient()
+
+    def test_me_returns_the_callers_profile_fields(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get("/api/me/")
+        self.assertEqual(response.data["job_position"], "Chief People Officer")
+        self.assertEqual(response.data["department"], "Leadership")

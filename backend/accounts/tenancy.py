@@ -30,12 +30,20 @@ def set_current_company(company_id):
         )
 
 
-class TenantScopedViewSetMixin:
-    """Applies the caller's company scope before the view runs any query."""
+class TenantScopedMixin:
+    """Applies the caller's company scope before the view runs any query.
+
+    Works for any DRF view, APIView included — `initial()` runs after authentication
+    and before the handler, which is exactly where the scope has to be set.
+    """
 
     def initial(self, request, *args, **kwargs):
         super().initial(request, *args, **kwargs)
         set_current_company(getattr(request.user, "company_id", None))
+
+
+# Kept as the name viewsets already import.
+TenantScopedViewSetMixin = TenantScopedMixin
 
 
 class TenantViewSet(TenantScopedViewSetMixin, GenericViewSet):
