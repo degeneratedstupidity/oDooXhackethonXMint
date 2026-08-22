@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(brew install *)",
+      "Bash(git remote *)",
+      "Bash(git fetch *)",
+      "Bash(npm --version)",
+      "Bash(gh --version)",
+      "Bash(gh auth *)",
+      "Bash(docker info *)",
+      "Bash(git config *)",
+      "Bash(python3 -c ' *)"
+    ]
+  }
+}

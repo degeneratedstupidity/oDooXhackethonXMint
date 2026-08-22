@@ -15,12 +15,26 @@ manages its employees, attendance, time off, and payroll.
 Requires Docker Desktop running.
 
 ```bash
-cp .env.example .env    # then edit values
-docker compose up --build
+./setup.sh                  # generates .env with fresh secrets
+docker compose up --build   # migrations run automatically on start
 ```
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000/api
+
+To explore with realistic data — seven people across the three roles, a month of
+attendance and time off in every state:
+
+```bash
+docker compose exec backend python manage.py seed_demo
+```
+
+It prints a login for each person; the password for all of them is `Demo@2026`. Sign in as
+the administrator to see everything, including the salary and payslip views.
+
+`setup.sh` exists because the encryption key must be a valid 32-byte Fernet key — copying
+`.env.example` by hand and leaving the placeholder in place would fail at the first write
+of a bank detail.
 
 ## Tests
 
