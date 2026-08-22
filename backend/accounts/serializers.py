@@ -80,6 +80,7 @@ class UserSummarySerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(read_only=True)
     work_status = serializers.SerializerMethodField()
     company_name = serializers.CharField(source="company.name", read_only=True)
+    company_logo = serializers.ImageField(source="company.logo", read_only=True)
     job_position = serializers.CharField(source="profile.job_position", read_only=True, default="")
     department = serializers.CharField(source="profile.department", read_only=True, default="")
 
@@ -98,6 +99,7 @@ class UserSummarySerializer(serializers.ModelSerializer):
             "date_of_joining",
             "must_change_password",
             "company_name",
+            "company_logo",
             "job_position",
             "department",
             "work_status",

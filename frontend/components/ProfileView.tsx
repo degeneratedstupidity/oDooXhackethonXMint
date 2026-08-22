@@ -97,7 +97,36 @@ export function ProfileView({ userId, isSelf }: { userId: number; isSelf: boolea
     <div className="rounded-xl border border-ink-200 bg-white">
       {/* Identity header */}
       <div className="flex flex-col gap-5 border-b border-ink-200 p-6 sm:flex-row">
-        <Avatar name={employee.full_name} src={employee.avatar} size="lg" />
+        <div className="relative shrink-0 self-start">
+          <Avatar name={employee.full_name} src={employee.avatar} size="lg" />
+          {editable && (
+            <label
+              title="Change picture"
+              className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center
+                rounded-full border-2 border-white bg-brand-600 text-sm text-white transition hover:bg-brand-700"
+            >
+              ✎
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={async (event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  const body = new FormData();
+                  body.append("avatar", file);
+                  try {
+                    await apiFetch(`/employees/${userId}/avatar/`, { method: "POST", body });
+                    await load();
+                    if (isSelf) refreshUser();
+                  } catch (caught) {
+                    setError(caught as ApiError);
+                  }
+                }}
+              />
+            </label>
+          )}
+        </div>
 
         <div className="grid flex-1 grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-2">
           <div className="space-y-2">

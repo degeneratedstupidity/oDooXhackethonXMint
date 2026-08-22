@@ -1,8 +1,9 @@
 from django.db import connection
 from django.db.models import Q
 from rest_framework import status, viewsets
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -117,6 +118,28 @@ class EmployeeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
         if self.action in ("create", "destroy"):
             return [IsAuthenticated(), CanManagePeople()]
         return super().get_permissions()
+
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser])
+    def avatar(self, request, pk=None):
+        """Upload a profile picture. Same rule as editing: yourself, or Admin/HR."""
+        target = self.get_object()
+        if target.id != request.user.id and not request.user.can_manage_people:
+            raise PermissionDenied("You can only change your own picture.")
+
+        image = request.FILES.get("avatar")
+        if not image:
+            return Response(
+                {"avatar": ["No image was uploaded."]}, status=status.HTTP_400_BAD_REQUEST
+            )
+        if image.size > 5 * 1024 * 1024:
+            return Response(
+                {"avatar": ["Images must be 5 MB or smaller."]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        target.avatar = image
+        target.save(update_fields=["avatar"])
+        return Response(UserSummarySerializer(target).data)
 
     def update(self, request, *args, **kwargs):
         """Employees may edit their own profile; Admin and HR may edit anyone's."""

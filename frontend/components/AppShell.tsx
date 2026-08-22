@@ -54,9 +54,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             href="/employees"
             className="mr-4 flex shrink-0 items-center gap-2 font-semibold text-ink-900"
           >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-sm text-white">
-              D
-            </span>
+            {user.company_logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={user.company_logo}
+                alt={user.company_name}
+                className="h-7 w-7 rounded-lg object-cover"
+              />
+            ) : (
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-600 text-sm font-bold text-white">
+                {user.company_name.charAt(0).toUpperCase()}
+              </span>
+            )}
             <span className="hidden truncate sm:block">{user.company_name}</span>
           </Link>
 

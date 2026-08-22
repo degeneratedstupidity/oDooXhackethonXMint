@@ -19,6 +19,7 @@ export type CurrentUser = {
   date_of_joining: string;
   must_change_password: boolean;
   company_name: string;
+  company_logo: string | null;
   job_position: string;
   department: string;
 };
