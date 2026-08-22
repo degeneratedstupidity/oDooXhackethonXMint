@@ -28,3 +28,6 @@ postgres-data/
 .vscode/
 *.log
 npm-debug.log*
+
+# Next.js
+next-env.d.ts
