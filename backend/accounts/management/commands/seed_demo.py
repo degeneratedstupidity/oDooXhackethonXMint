@@ -52,7 +52,7 @@ class Command(BaseCommand):
         name = options["company"]
 
         if options["reset"]:
-            Company.objects.filter(name=name).delete()
+            self._delete_company(name)
         if Company.objects.filter(name=name).exists():
             self.stdout.write(
                 self.style.WARNING(f"{name} already exists. Re-run with --reset to replace it.")
@@ -114,6 +114,26 @@ class Command(BaseCommand):
         self.stdout.write("Sign in with any of these — password for all is " + PASSWORD + "\n")
         for user in users:
             self.stdout.write(f"  {user.login_id}   {user.get_role_display():<12} {user.full_name}")
+
+    def _delete_company(self, name):
+        """Tear down a demo company completely.
+
+        Two things make this more than a one-line delete. The company scope has to be set
+        first, because Django's cascade collector queries the related tables and row-level
+        security hides company-scoped rows from an unscoped session — the collector would
+        miss them and Postgres would refuse the delete on the foreign key. And leave
+        requests have to go before their types, which are deliberately PROTECTed so a type
+        in use cannot be removed in normal operation.
+        """
+        existing = Company.objects.filter(name=name).first()
+        if not existing:
+            return
+
+        set_current_company(existing.id)
+        TimeOffRequest.objects.filter(company=existing).delete()
+        TimeOffType.objects.filter(company=existing).delete()
+        existing.delete()
+        set_current_company(None)
 
     def _seed_attendance(self, company, users):
         """A month of weekday attendance, with some variation in hours and absences."""

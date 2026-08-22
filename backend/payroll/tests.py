@@ -9,7 +9,7 @@ from accounts.models import Role
 from accounts.seed import create_salary_structure
 from accounts.tests import make_company, make_user
 from attendance.models import Attendance
-from timeoff.models import TimeOffRequest, TimeOffStatus, TimeOffType
+from timeoff.models import PublicHoliday, TimeOffRequest, TimeOffStatus, TimeOffType
 
 from .models import ComponentCode, SalaryStructure
 from .payslip import compute_payslip
@@ -204,3 +204,41 @@ class PayslipTests(TestCase):
         )
         payslip = compute_payslip(self.structure, 2026, 6)
         self.assertGreaterEqual(payslip.payable_days, 0)
+
+
+class PublicHolidayPayrollTests(TestCase):
+    """A holiday is not a working day, and not an absence."""
+
+    def setUp(self):
+        self.company = make_company()
+        self.user = make_user(self.company, joining=date(2026, 1, 1))
+        self.structure = create_salary_structure(self.company, self.user)
+        self.structure.monthly_wage = Decimal("50000")
+        self.structure.save()
+        self.structure.recompute()
+
+    def test_a_holiday_reduces_the_working_day_count(self):
+        before = compute_payslip(self.structure, 2026, 7).working_days
+        # 1 July 2026 is a Wednesday.
+        PublicHoliday.objects.create(
+            company=self.company, name="Test Holiday", date=date(2026, 7, 1)
+        )
+        after = compute_payslip(self.structure, 2026, 7).working_days
+        self.assertEqual(after, before - 1)
+
+    def test_a_holiday_is_not_counted_as_an_absence(self):
+        PublicHoliday.objects.create(
+            company=self.company, name="Test Holiday", date=date(2026, 7, 1)
+        )
+        payslip = compute_payslip(self.structure, 2026, 7)
+        # With no attendance at all, every other working day is unaccounted, but the
+        # holiday must not be among them.
+        self.assertEqual(payslip.unaccounted_days, payslip.working_days)
+
+    def test_a_weekend_holiday_changes_nothing(self):
+        before = compute_payslip(self.structure, 2026, 7).working_days
+        # 4 July 2026 is a Saturday, already outside a five-day week.
+        PublicHoliday.objects.create(
+            company=self.company, name="Weekend Holiday", date=date(2026, 7, 4)
+        )
+        self.assertEqual(compute_payslip(self.structure, 2026, 7).working_days, before)

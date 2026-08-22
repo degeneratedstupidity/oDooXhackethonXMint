@@ -7,14 +7,31 @@ from rest_framework.response import Response
 from accounts.permissions import CanManagePeople
 from accounts.tenancy import TenantScopedViewSetMixin
 
-from .models import TimeOffRequest, TimeOffStatus, TimeOffType
-from .serializers import TimeOffRequestSerializer, TimeOffTypeSerializer
+from .models import PublicHoliday, TimeOffRequest, TimeOffStatus, TimeOffType
+from .serializers import (
+    PublicHolidaySerializer,
+    TimeOffRequestSerializer,
+    TimeOffTypeSerializer,
+)
 
 
 class TimeOffTypeViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
     serializer_class = TimeOffTypeSerializer
     permission_classes = [IsAuthenticated]
     queryset = TimeOffType.objects.all()
+
+
+class PublicHolidayViewSet(TenantScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
+    """The company's holidays, for the calendar and for payroll."""
+
+    serializer_class = PublicHolidaySerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = PublicHoliday.objects.all()
+        if year := self.request.query_params.get("year"):
+            queryset = queryset.filter(date__year=year)
+        return queryset
 
 
 class TimeOffRequestViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):

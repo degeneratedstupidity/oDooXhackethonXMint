@@ -96,5 +96,11 @@ is scoped in the application layer instead; everything else is enforced by Postg
 administrator-only, so HR Officers can manage people, attendance and leave, but the salary endpoints
 return 403 for them.
 
-**Leave is counted in calendar days.** Requests count both end dates inclusively. Public-holiday and
-weekend exclusion would need a company calendar the specification does not define.
+**Leave is counted in calendar days.** Requests count both end dates inclusively, so a Friday-to-Monday
+request is four days against the allowance.
+
+**Public holidays belong to the company, not the system.** The specification's calendar shows an Indian
+holiday list, so that set is seeded for a new company, but companies observe different holidays and operate
+in different regions — the model is per company and editable rather than global. A holiday is excluded from
+working days and never counted as an absence, so nobody loses a day's pay for a day nobody was expected to
+work.

@@ -1,13 +1,20 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import TimeOffRequest, TimeOffStatus, TimeOffType
+from .models import PublicHoliday, TimeOffRequest, TimeOffStatus, TimeOffType
 
 
 class TimeOffTypeSerializer(serializers.ModelSerializer):
     class Meta:
         model = TimeOffType
         fields = ["id", "name", "is_paid", "default_days_per_year", "requires_attachment"]
+        read_only_fields = fields
+
+
+class PublicHolidaySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PublicHoliday
+        fields = ["id", "name", "date"]
         read_only_fields = fields
 
 

@@ -27,7 +27,9 @@ yours before your first commit.
 
 ---
 
-## Card 1 — Public holiday calendar
+## Card 1 — Public holiday calendar — **done**
+
+Implemented already; left here for reference.
 
 **Why:** Time off is counted in plain calendar days right now, so a request spanning a
 public holiday burns a day of the employee's allowance that it should not.

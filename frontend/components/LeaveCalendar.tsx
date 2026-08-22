@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { apiFetch } from "@/lib/api";
 
 type Request = {
   id: number;
@@ -38,8 +39,22 @@ function toKey(date: Date) {
 
 /** A year at a glance, with each leave day shaded by the status of its request.
     Mirrors the calendar in the specification's Time Off view. */
+type Holiday = { id: number; name: string; date: string };
+
 export function LeaveCalendar({ requests }: { requests: Request[] }) {
   const [year, setYear] = useState(() => new Date().getFullYear());
+  const [holidays, setHolidays] = useState<Holiday[]>([]);
+
+  useEffect(() => {
+    apiFetch<Holiday[]>(`/public-holidays/?year=${year}`)
+      .then(setHolidays)
+      .catch(() => setHolidays([]));
+  }, [year]);
+
+  const holidayByDate = useMemo(
+    () => new Map(holidays.map((holiday) => [holiday.date, holiday])),
+    [holidays],
+  );
 
   // One lookup from date key to the request covering it, so rendering stays cheap.
   const byDate = useMemo(() => {
@@ -88,6 +103,10 @@ export function LeaveCalendar({ requests }: { requests: Request[] }) {
               {STATUS_LABEL[status]}
             </li>
           ))}
+          <li className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded bg-ink-200" />
+            Public holiday
+          </li>
         </ul>
       </div>
 
@@ -115,7 +134,15 @@ export function LeaveCalendar({ requests }: { requests: Request[] }) {
                   const day = index + 1;
                   const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
                   const request = byDate.get(key);
+                  const holiday = holidayByDate.get(key);
                   const isToday = key === today;
+
+                  // A leave request takes precedence: it is the thing being tracked here.
+                  const shading = request
+                    ? STATUS_CLASS[request.status]
+                    : holiday
+                      ? "bg-ink-200 text-ink-700"
+                      : "text-ink-600";
 
                   return (
                     <span
@@ -123,11 +150,11 @@ export function LeaveCalendar({ requests }: { requests: Request[] }) {
                       title={
                         request
                           ? `${request.type_name} — ${STATUS_LABEL[request.status]}`
-                          : undefined
+                          : holiday?.name
                       }
-                      className={`rounded py-0.5 text-[11px] leading-5 ${
-                        request ? STATUS_CLASS[request.status] : "text-ink-600"
-                      } ${isToday && !request ? "ring-1 ring-brand-400" : ""}`}
+                      className={`rounded py-0.5 text-[11px] leading-5 ${shading} ${
+                        isToday && !request && !holiday ? "ring-1 ring-brand-400" : ""
+                      }`}
                     >
                       {day}
                     </span>
@@ -138,6 +165,27 @@ export function LeaveCalendar({ requests }: { requests: Request[] }) {
           );
         })}
       </div>
+
+      {holidays.length > 0 && (
+        <div className="mt-5 border-t border-ink-100 pt-4">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
+            Public holidays
+          </h3>
+          <ul className="grid grid-cols-1 gap-x-6 gap-y-1 text-xs text-ink-600 sm:grid-cols-2 lg:grid-cols-3">
+            {holidays.map((holiday) => (
+              <li key={holiday.id} className="flex justify-between gap-3">
+                <span className="truncate">{holiday.name}</span>
+                <span className="shrink-0 text-ink-400">
+                  {new Date(holiday.date).toLocaleDateString(undefined, {
+                    day: "numeric",
+                    month: "short",
+                  })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </section>
   );
 }

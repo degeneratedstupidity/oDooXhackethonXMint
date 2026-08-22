@@ -58,3 +58,25 @@ class TimeOffRequest(TenantScopedModel):
     def days(self) -> int:
         """Inclusive of both end dates, matching how leave is counted on a calendar."""
         return (self.end_date - self.start_date).days + 1
+
+
+class PublicHoliday(TenantScopedModel):
+    """A company holiday. Nobody is expected at work, and nobody loses pay for it.
+
+    Held per company rather than globally: the specification's calendar shows an Indian
+    holiday list, but companies observe different sets and operate in different regions.
+    """
+
+    name = models.CharField(max_length=120)
+    date = models.DateField()
+
+    class Meta:
+        ordering = ["date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["company", "date"], name="one_holiday_per_company_per_date"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.name} on {self.date}"

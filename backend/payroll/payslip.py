@@ -14,7 +14,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from attendance.models import Attendance
-from timeoff.models import TimeOffRequest, TimeOffStatus
+from timeoff.models import PublicHoliday, TimeOffRequest, TimeOffStatus
 
 
 @dataclass
@@ -34,12 +34,11 @@ class Payslip:
     components: list
 
 
-def _working_days(year, month, days_per_week):
+def _working_days(year, month, days_per_week, holidays):
     """Working days in the month, based on the employee's configured week.
 
-    A five-day week means Monday to Friday; a six-day week adds Saturday. Public holidays
-    are not modelled — the specification does not define a company calendar — so they are
-    counted as working days.
+    A five-day week means Monday to Friday; a six-day week adds Saturday. Company public
+    holidays are excluded — nobody is expected in, so nobody should lose a day's pay.
     """
     total = monthrange(year, month)[1]
     # weekday() is 0 for Monday, so a five-day week keeps 0-4 and a six-day week keeps 0-5.
@@ -47,6 +46,7 @@ def _working_days(year, month, days_per_week):
         1
         for day in range(1, total + 1)
         if date(year, month, day).weekday() < days_per_week
+        and date(year, month, day) not in holidays
     )
 
 
@@ -66,7 +66,12 @@ def compute_payslip(structure, year, month):
     user = structure.user
     # Model defaults can hand back a plain int, which has no decimal arithmetic.
     wage = Decimal(str(structure.monthly_wage))
-    working_days = _working_days(year, month, structure.working_days_per_week)
+    holidays = set(
+        PublicHoliday.objects.filter(date__year=year, date__month=month).values_list(
+            "date", flat=True
+        )
+    )
+    working_days = _working_days(year, month, structure.working_days_per_week, holidays)
 
     attendance_dates = set(
         Attendance.objects.filter(user=user, date__year=year, date__month=month)
@@ -105,6 +110,9 @@ def compute_payslip(structure, year, month):
     for day_number in range(1, total_days + 1):
         day = date(year, month, day_number)
         if day.weekday() >= structure.working_days_per_week:
+            continue
+        # A holiday is not an absence.
+        if day in holidays:
             continue
         if day in attendance_dates or day in leave_dates:
             continue
