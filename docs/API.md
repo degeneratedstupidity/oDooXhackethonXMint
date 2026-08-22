@@ -136,7 +136,15 @@ Adds an employee. The login ID and first password are generated, never supplied.
 
 ### `GET /employees/{id}/`
 
-The full profile: identity, work information, private information and bank details.
+The profile page. What comes back depends on who is asking:
+
+- **The employee themselves, an Admin, or an HR Officer** get the full record — identity,
+  work information, private information (date of birth, residing address, nationality,
+  personal email, gender, marital status) and `bank_detail`.
+- **Anyone else in the company** gets identity, work information and the resume fields
+  only. The private block and `bank_detail` are **absent from the response**, not blanked —
+  they are never serialised.
+
 `404` if the id belongs to another company.
 
 ### `PATCH /employees/{id}/`

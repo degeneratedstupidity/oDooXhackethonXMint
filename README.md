@@ -42,7 +42,7 @@ of a bank detail.
 docker compose exec backend python manage.py test
 ```
 
-90 tests covering:
+96 tests covering:
 - Login ID generation and sequencing (no duplicates across concurrent creation)
 - Salary computation rules, including the specification's worked example (₹50,000 wage)
 - Payslip derivation from attendance with dynamic day counts
@@ -50,6 +50,7 @@ docker compose exec backend python manage.py test
 - Attendance hour calculation with configurable breaks
 - Work hours deductions for leave and public holidays
 - Role-based access control (Admin, HR Officer, Employee)
+- Private and bank details withheld from colleagues, returned to self, Admin and HR
 - Deactivation and reactivation of employees
 - Row-level security at the database level (proven against real Postgres policies)
 - Field-level encryption at rest (verified by reading raw database columns)
@@ -79,6 +80,9 @@ ciphertext is stored, not plaintext.
 - **Row-Level Security** in PostgreSQL scopes every company-owned table by tenant, enforced at the database
   level rather than only in application code.
 - **Field-level encryption** on bank and identity details (account number, IFSC, PAN, UAN).
+- Private information (date of birth, home address, personal email) and bank details are
+  readable only by the employee themselves, an Admin, or an HR Officer. A colleague opening
+  the profile gets a response with those fields absent, not merely hidden in the UI.
 - Role and ownership checks in DRF permissions and serializers on every read and write path.
 - All input validated server-side; the client is never trusted.
 - Sign-in is rate limited, since login IDs follow a published format and would otherwise be
@@ -121,6 +125,15 @@ holiday list, so that set is seeded for a new company, but companies observe dif
 in different regions — the model is per company and editable rather than global. A holiday is excluded from
 working days and never counted as an absence, so nobody loses a day's pay for a day nobody was expected to
 work.
+
+**The directory is open; the private half of a profile is not.** The wireframes show the employee
+directory as the landing page for every role, so anyone can look a colleague up and open their profile —
+name, photo, job position, department, manager, location and the resume are all meant to be seen. Date of
+birth, home address, personal email, gender, marital status and bank details are not directory
+information: an employee sees those on their own record, and Admin and HR see them on anyone's because
+administering people requires it. The restriction is applied by serving a different serializer, so those
+fields are never loaded for an unauthorised viewer rather than being fetched and then hidden by the
+frontend.
 
 **Employees are deactivated, never deleted.** Attendance and payroll are records of what a person was paid —
 deleting an employee would erase the evidence behind payslips already issued and break statutory retention
