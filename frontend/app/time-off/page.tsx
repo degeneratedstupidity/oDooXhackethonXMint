@@ -120,7 +120,7 @@ export default function TimeOffPage() {
 
       {!loading && requests.length > 0 && (
         <div className="mb-6">
-          <LeaveCalendar requests={requests} />
+          <LeaveCalendar requests={requests} showNames={manages} />
         </div>
       )}
 

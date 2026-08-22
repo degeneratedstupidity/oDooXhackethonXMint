@@ -168,11 +168,17 @@ class Command(BaseCommand):
         approver = users[0]
         today = timezone.localdate()
 
+        # Some of these deliberately overlap. People take leave around the same dates —
+        # long weekends, school holidays — and the calendar has to show a day with several
+        # names on it, in more than one state, rather than only the last one entered.
         plans = [
             (users[2], types[0], -20, 3, TimeOffStatus.APPROVED),
+            (users[6], types[1], -20, 2, TimeOffStatus.APPROVED),
             (users[3], types[1], -12, 2, TimeOffStatus.APPROVED),
             (users[4], types[0], -5, 1, TimeOffStatus.REFUSED),
             (users[5], types[0], 6, 4, TimeOffStatus.TO_APPROVE),
+            (users[4], types[1], 6, 3, TimeOffStatus.APPROVED),
+            (users[3], types[0], 7, 2, TimeOffStatus.TO_APPROVE),
             (users[6], types[1], 10, 2, TimeOffStatus.TO_APPROVE),
             (users[2], types[2], 20, 3, TimeOffStatus.TO_APPROVE),
         ]

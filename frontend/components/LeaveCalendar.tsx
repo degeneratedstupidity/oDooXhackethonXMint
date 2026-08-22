@@ -41,9 +41,97 @@ function toKey(date: Date) {
     Mirrors the calendar in the specification's Time Off view. */
 type Holiday = { id: number; name: string; date: string };
 
-export function LeaveCalendar({ requests }: { requests: Request[] }) {
+/** Statuses in the order they are listed in a day's detail panel. */
+const STATUS_ORDER: Request["status"][] = ["approved", "to_approve", "refused"];
+
+const STATUS_DOT: Record<Request["status"], string> = {
+  approved: "bg-brand-600",
+  to_approve: "bg-amber-400",
+  refused: "bg-red-300",
+};
+
+/** Who is away on one day, grouped by where their request stands. */
+function DayPanel({
+  dateKey,
+  requests,
+  holiday,
+  showNames,
+}: {
+  dateKey: string;
+  requests: Request[];
+  holiday?: Holiday;
+  showNames: boolean;
+}) {
+  const heading = new Date(`${dateKey}T00:00:00`).toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+  const grouped = STATUS_ORDER.map((status) => ({
+    status,
+    items: requests.filter((request) => request.status === status),
+  })).filter((group) => group.items.length > 0);
+
+  return (
+    <div
+      role="tooltip"
+      className="absolute bottom-full left-1/2 z-20 mb-1.5 w-56 -translate-x-1/2 rounded-lg
+        border border-ink-200 bg-white p-2.5 text-left shadow-lg"
+    >
+      <p className="mb-1.5 text-[11px] font-semibold text-ink-900">{heading}</p>
+
+      {holiday && (
+        <p className="mb-1.5 rounded bg-ink-100 px-1.5 py-1 text-[11px] text-ink-700">
+          {holiday.name}
+        </p>
+      )}
+
+      {grouped.map((group) => (
+        <div key={group.status} className="mb-1.5 last:mb-0">
+          <p className="mb-0.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase
+            tracking-wide text-ink-500">
+            <span className={`h-2 w-2 rounded-full ${STATUS_DOT[group.status]}`} />
+            {STATUS_LABEL[group.status]} ({group.items.length})
+          </p>
+          <ul className="space-y-0.5">
+            {group.items.map((request) => (
+              <li key={request.id} className="truncate text-[11px] text-ink-700">
+                {showNames ? (
+                  <>
+                    <span className="font-medium">{request.employee_name}</span>
+                    <span className="text-ink-500"> — {request.type_name}</span>
+                  </>
+                ) : (
+                  request.type_name
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+
+      {requests.length === 0 && !holiday && (
+        <p className="text-[11px] text-ink-500">Nobody is away.</p>
+      )}
+    </div>
+  );
+}
+
+export function LeaveCalendar({
+  requests,
+  showNames = false,
+}: {
+  requests: Request[];
+  /** Admin and HR see who is away; an employee's calendar is only ever their own. */
+  showNames?: boolean;
+}) {
   const [year, setYear] = useState(() => new Date().getFullYear());
   const [holidays, setHolidays] = useState<Holiday[]>([]);
+  // The day whose detail panel is open. Hover sets it; a click pins it, so the panel is
+  // reachable on a touch screen where there is no hover at all.
+  const [openDay, setOpenDay] = useState<string | null>(null);
+  const [pinnedDay, setPinnedDay] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<Holiday[]>(`/public-holidays/?year=${year}`)
@@ -56,14 +144,19 @@ export function LeaveCalendar({ requests }: { requests: Request[] }) {
     [holidays],
   );
 
-  // One lookup from date key to the request covering it, so rendering stays cheap.
+  // One lookup from date key to every request covering it. This has to be a list: on an
+  // Admin's calendar several people are routinely away on the same day, and keeping only
+  // one of them would hide the rest.
   const byDate = useMemo(() => {
-    const map = new Map<string, Request>();
+    const map = new Map<string, Request[]>();
     for (const request of requests) {
       const cursor = new Date(request.start_date);
       const end = new Date(request.end_date);
       while (cursor <= end) {
-        map.set(toKey(cursor), request);
+        const key = toKey(cursor);
+        const existing = map.get(key);
+        if (existing) existing.push(request);
+        else map.set(key, [request]);
         cursor.setDate(cursor.getDate() + 1);
       }
     }
@@ -71,11 +164,24 @@ export function LeaveCalendar({ requests }: { requests: Request[] }) {
   }, [requests]);
 
   const today = toKey(new Date());
+  const activeDay = pinnedDay ?? openDay;
+
+  /** The shade for a day covered by several requests at once.
+      Someone actually being away outranks a request that is still only proposed. */
+  function dominantStatus(dayRequests: Request[]): Request["status"] {
+    return (
+      STATUS_ORDER.find((status) => dayRequests.some((r) => r.status === status)) ??
+      "to_approve"
+    );
+  }
 
   return (
     <section className="rounded-xl border border-ink-200 bg-white p-4 sm:p-5">
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h2 className="text-sm font-semibold text-ink-900">Leave calendar</h2>
+        <span className="text-xs text-ink-500">
+          {showNames ? "Hover a day to see who is away" : "Hover a day for details"}
+        </span>
         <div className="flex items-center gap-1">
           <button
             onClick={() => setYear((current) => current - 1)}
@@ -133,30 +239,61 @@ export function LeaveCalendar({ requests }: { requests: Request[] }) {
                 {Array.from({ length: dayCount }, (_, index) => {
                   const day = index + 1;
                   const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                  const request = byDate.get(key);
+                  const dayRequests = byDate.get(key);
                   const holiday = holidayByDate.get(key);
                   const isToday = key === today;
+                  const hasDetail = Boolean(dayRequests || holiday);
 
                   // A leave request takes precedence: it is the thing being tracked here.
-                  const shading = request
-                    ? STATUS_CLASS[request.status]
+                  const shading = dayRequests
+                    ? STATUS_CLASS[dominantStatus(dayRequests)]
                     : holiday
                       ? "bg-ink-200 text-ink-700"
                       : "text-ink-600";
 
                   return (
-                    <span
-                      key={day}
-                      title={
-                        request
-                          ? `${request.type_name} — ${STATUS_LABEL[request.status]}`
-                          : holiday?.name
-                      }
-                      className={`rounded py-0.5 text-[11px] leading-5 ${shading} ${
-                        isToday && !request && !holiday ? "ring-1 ring-brand-400" : ""
-                      }`}
-                    >
-                      {day}
+                    <span key={day} className="relative">
+                      <span
+                        tabIndex={hasDetail ? 0 : undefined}
+                        onMouseEnter={() => hasDetail && setOpenDay(key)}
+                        onMouseLeave={() => setOpenDay(null)}
+                        onFocus={() => hasDetail && setOpenDay(key)}
+                        onBlur={() => setOpenDay(null)}
+                        onClick={() =>
+                          hasDetail && setPinnedDay((current) => (current === key ? null : key))
+                        }
+                        className={`block rounded py-0.5 text-[11px] leading-5 ${shading} ${
+                          isToday && !dayRequests && !holiday ? "ring-1 ring-brand-400" : ""
+                        } ${
+                          hasDetail
+                            ? "cursor-pointer outline-none ring-offset-1 focus-visible:ring-2 focus-visible:ring-brand-500"
+                            : ""
+                        } ${activeDay === key ? "ring-2 ring-brand-500" : ""}`}
+                      >
+                        {day}
+                      </span>
+
+                      {/* More than one person away shows a count, so a busy day is
+                          visible without having to hover over it first. */}
+                      {dayRequests && dayRequests.length > 1 && (
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute -right-0.5 -top-0.5 flex h-3 w-3
+                            items-center justify-center rounded-full bg-ink-900 text-[8px]
+                            font-semibold leading-none text-white"
+                        >
+                          {dayRequests.length}
+                        </span>
+                      )}
+
+                      {activeDay === key && hasDetail && (
+                        <DayPanel
+                          dateKey={key}
+                          requests={dayRequests ?? []}
+                          holiday={holiday}
+                          showNames={showNames}
+                        />
+                      )}
                     </span>
                   );
                 })}
