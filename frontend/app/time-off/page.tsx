@@ -176,7 +176,11 @@ export default function TimeOffPage() {
                           text-xs text-ink-600 hover:bg-ink-200 hover:text-ink-900"
                         title="Open the supporting document"
                       >
-                        📎 Document
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                          strokeLinecap="round" strokeLinejoin="round" className="h-3 w-3" aria-hidden>
+                          <path d="M21.4 11.05l-9.19 9.19a5 5 0 01-7.07-7.07l9.19-9.19a3.33 3.33 0 014.71 4.71l-9.2 9.19a1.67 1.67 0 01-2.35-2.36l8.49-8.48" />
+                        </svg>
+                        Document
                       </a>
                     )}
                   </td>

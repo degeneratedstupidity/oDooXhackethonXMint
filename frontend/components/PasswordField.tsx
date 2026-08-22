@@ -54,7 +54,21 @@ export function PasswordField({
           aria-label={visible ? "Hide password" : "Show password"}
           className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-ink-400 hover:text-ink-600"
         >
-          {visible ? "🙈" : "👁"}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+            strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
+            {visible ? (
+              <>
+                <path d="M3 3l18 18" />
+                <path d="M10.6 10.6a2 2 0 002.8 2.8" />
+                <path d="M9.4 5.2A9.7 9.7 0 0112 5c5 0 9 5 9 7a12 12 0 01-2.4 3.2M6.2 6.9C3.9 8.5 3 11 3 12c0 2 4 7 9 7a9.6 9.6 0 004-.9" />
+              </>
+            ) : (
+              <>
+                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+                <circle cx="12" cy="12" r="2.5" />
+              </>
+            )}
+          </svg>
         </button>
       </div>
       {invalid && (

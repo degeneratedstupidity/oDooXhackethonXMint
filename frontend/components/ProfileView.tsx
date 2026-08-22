@@ -108,7 +108,11 @@ export function ProfileView({ userId, isSelf }: { userId: number; isSelf: boolea
               className="absolute -bottom-1 -right-1 flex h-8 w-8 cursor-pointer items-center justify-center
                 rounded-full border-2 border-white bg-brand-600 text-sm text-white transition hover:bg-brand-700"
             >
-              ✎
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+                strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden>
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" />
+              </svg>
               <input
                 type="file"
                 accept="image/*"
