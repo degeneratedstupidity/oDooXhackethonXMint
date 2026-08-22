@@ -18,6 +18,7 @@ from .serializers import (
     CompanySignUpSerializer,
     EmployeeCreateSerializer,
     EmployeeDetailSerializer,
+    EmployeePublicSerializer,
     UserSummarySerializer,
 )
 from .tenancy import TenantScopedMixin, TenantScopedViewSetMixin
@@ -89,9 +90,22 @@ class EmployeeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
 
     def get_serializer_class(self):
         # The list is the directory grid; a single record is the full profile page.
-        if self.action in ("retrieve", "update", "partial_update"):
+        if self.action in ("update", "partial_update"):
             return EmployeeDetailSerializer
+        if self.action == "retrieve":
+            # Everyone can open a colleague's profile, but private information and bank
+            # details belong to the employee themselves and to the people who administer
+            # them. Anyone else gets the trimmed serializer, which never loads those
+            # fields at all rather than blanking them after the fact.
+            return (
+                EmployeeDetailSerializer
+                if self._may_see_private(self.get_object())
+                else EmployeePublicSerializer
+            )
         return UserSummarySerializer
+
+    def _may_see_private(self, target):
+        return target.id == self.request.user.id or self.request.user.can_manage_people
 
     def get_queryset(self):
         """Scoped to the caller's company.

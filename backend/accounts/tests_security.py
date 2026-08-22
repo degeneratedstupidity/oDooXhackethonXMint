@@ -192,6 +192,88 @@ class RolePermissionTests(TestCase):
         self.assertEqual(response.status_code, 403)
 
 
+class PrivateInfoVisibilityTests(TestCase):
+    """Who may read the private half of a profile.
+
+    The directory is open to everyone — that is the point of a directory — but date of
+    birth, home address, personal email and bank details are not directory information.
+    An employee sees those on their own record only; Admin and HR see them on anyone's,
+    because administering people requires them.
+    """
+
+    def setUp(self):
+        self.company = make_company()
+        self.admin = make_user(self.company, "Asha", "Menon", role=Role.ADMIN)
+        self.hr = make_user(self.company, "Rahul", "Verma", role=Role.HR_OFFICER)
+        self.employee = make_user(self.company, "Priya", "Nair", role=Role.EMPLOYEE)
+        self.colleague = make_user(self.company, "Arjun", "Das", role=Role.EMPLOYEE)
+
+        set_current_company(self.company.id)
+        for person in (self.admin, self.hr, self.employee, self.colleague):
+            EmployeeProfile.objects.filter(user=person).update(
+                job_position="Engineer",
+                date_of_birth=date(1990, 5, 1),
+                residing_address="12 Residency Road",
+                personal_email=f"{person.first_name.lower()}@personal.test",
+                about="Builds things.",
+            )
+            BankDetail.objects.create(
+                company=self.company,
+                user=person,
+                bank_name="State Bank",
+                account_number="12345678901",
+                pan_number="ABCDE1234F",
+            )
+
+        self.client = APIClient()
+
+    def get_colleague(self, viewer):
+        self.client.force_authenticate(user=viewer)
+        response = self.client.get(f"/api/employees/{self.colleague.id}/")
+        self.assertEqual(response.status_code, 200)
+        return response.data
+
+    def test_employee_viewing_a_colleague_sees_no_bank_details(self):
+        data = self.get_colleague(self.employee)
+        self.assertNotIn("bank_detail", data)
+
+    def test_employee_viewing_a_colleague_sees_no_private_information(self):
+        profile = self.get_colleague(self.employee)["profile"]
+        for field in (
+            "date_of_birth",
+            "residing_address",
+            "personal_email",
+            "gender",
+            "marital_status",
+            "nationality",
+        ):
+            self.assertNotIn(field, profile)
+
+    def test_employee_viewing_a_colleague_still_sees_work_info_and_resume(self):
+        """Trimming the private block must not empty the page it is trimmed from."""
+        profile = self.get_colleague(self.employee)["profile"]
+        self.assertEqual(profile["job_position"], "Engineer")
+        self.assertEqual(profile["about"], "Builds things.")
+
+    def test_employee_sees_everything_on_their_own_record(self):
+        self.client.force_authenticate(user=self.employee)
+        response = self.client.get(f"/api/employees/{self.employee.id}/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("bank_detail", response.data)
+        self.assertEqual(response.data["profile"]["residing_address"], "12 Residency Road")
+
+    def test_admin_sees_everything_on_anyones_record(self):
+        data = self.get_colleague(self.admin)
+        self.assertIn("bank_detail", data)
+        self.assertEqual(data["bank_detail"]["pan_number"], "ABCDE1234F")
+        self.assertEqual(data["profile"]["residing_address"], "12 Residency Road")
+
+    def test_hr_officer_sees_everything_on_anyones_record(self):
+        data = self.get_colleague(self.hr)
+        self.assertIn("bank_detail", data)
+        self.assertEqual(data["profile"]["date_of_birth"], "1990-05-01")
+
+
 class TenantScopeOnPlainViewsTests(TestCase):
     """Views that are not viewsets still need the company scope set.
 

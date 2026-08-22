@@ -27,6 +27,9 @@ export function ProfileView({ userId, isSelf }: { userId: number; isSelf: boolea
   const editable = isSelf || Boolean(viewer && viewer.role !== "employee");
   // Salary is administrator-only, matching the API.
   const canSeeSalary = viewer?.role === "admin";
+  // Date of birth, home address and bank details are not directory information. The API
+  // omits them for anyone else, so the tab would be empty as well as unwelcome.
+  const canSeePrivate = editable;
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -88,7 +91,7 @@ export function ProfileView({ userId, isSelf }: { userId: number; isSelf: boolea
 
   const TABS: { id: Tab; label: string }[] = [
     { id: "resume", label: "Resume" },
-    { id: "private", label: "Private Info" },
+    ...(canSeePrivate ? [{ id: "private" as Tab, label: "Private Info" }] : []),
     ...(canSeeSalary ? [{ id: "salary" as Tab, label: "Salary Info" }] : []),
     ...(isSelf ? [{ id: "security" as Tab, label: "Security" }] : []),
   ];
@@ -242,15 +245,15 @@ export function ProfileView({ userId, isSelf }: { userId: number; isSelf: boolea
                 onChange={(v) => patch("profile.date_of_birth", v || null)}
                 errors={profileErrors.date_of_birth} />
               <Field label="Residing address" name="address"
-                value={employee.profile.residing_address}
+                value={employee.profile.residing_address ?? ""}
                 onChange={(v) => patch("profile.residing_address", v)}
                 errors={profileErrors.residing_address} />
               <Field label="Nationality" name="nationality"
-                value={employee.profile.nationality}
+                value={employee.profile.nationality ?? ""}
                 onChange={(v) => patch("profile.nationality", v)}
                 errors={profileErrors.nationality} />
               <Field label="Personal email" name="personal_email" type="email"
-                value={employee.profile.personal_email}
+                value={employee.profile.personal_email ?? ""}
                 onChange={(v) => patch("profile.personal_email", v)}
                 errors={profileErrors.personal_email} />
             </div>
@@ -261,23 +264,23 @@ export function ProfileView({ userId, isSelf }: { userId: number; isSelf: boolea
                 Encrypted at rest — stored as ciphertext, never as readable text.
               </p>
               <Field label="Bank name" name="bank_name"
-                value={employee.bank_detail.bank_name}
+                value={employee.bank_detail?.bank_name ?? ""}
                 onChange={(v) => patch("bank_detail.bank_name", v)}
                 errors={bankErrors.bank_name} />
               <Field label="Account number" name="account_number"
-                value={employee.bank_detail.account_number}
+                value={employee.bank_detail?.account_number ?? ""}
                 onChange={(v) => patch("bank_detail.account_number", v)}
                 errors={bankErrors.account_number} />
               <Field label="IFSC code" name="ifsc_code"
-                value={employee.bank_detail.ifsc_code}
+                value={employee.bank_detail?.ifsc_code ?? ""}
                 onChange={(v) => patch("bank_detail.ifsc_code", v)}
                 errors={bankErrors.ifsc_code} />
               <Field label="PAN number" name="pan_number"
-                value={employee.bank_detail.pan_number}
+                value={employee.bank_detail?.pan_number ?? ""}
                 onChange={(v) => patch("bank_detail.pan_number", v)}
                 errors={bankErrors.pan_number} />
               <Field label="UAN number" name="uan_number"
-                value={employee.bank_detail.uan_number}
+                value={employee.bank_detail?.uan_number ?? ""}
                 onChange={(v) => patch("bank_detail.uan_number", v)}
                 errors={bankErrors.uan_number} />
             </div>

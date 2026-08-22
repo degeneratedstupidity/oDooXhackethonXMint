@@ -286,6 +286,65 @@ class EmployeeProfileSerializer(serializers.ModelSerializer):
     validate_certifications = validate_skills
 
 
+class PublicProfileSerializer(serializers.ModelSerializer):
+    """A colleague's profile minus anything private.
+
+    Work information and the resume are deliberately visible to everyone — the directory
+    exists so people can find out who does what. Date of birth, home address, personal
+    email, gender and marital status are not, and neither are bank details.
+    """
+
+    manager_name = serializers.CharField(source="manager.full_name", read_only=True, default="")
+
+    class Meta:
+        model = EmployeeProfile
+        fields = [
+            "job_position",
+            "department",
+            "manager",
+            "manager_name",
+            "location",
+            "about",
+            "what_i_love_about_my_job",
+            "interests_and_hobbies",
+            "skills",
+            "certifications",
+        ]
+        read_only_fields = fields
+
+
+class EmployeePublicSerializer(serializers.ModelSerializer):
+    """What one employee may see of another.
+
+    Same shape as the full detail serializer so the frontend can render one profile page
+    either way, but the private block is trimmed and `bank_detail` is absent entirely —
+    not blanked, absent, so nothing sensitive is ever serialised in the first place.
+    """
+
+    full_name = serializers.CharField(read_only=True)
+    company_name = serializers.CharField(source="company.name", read_only=True)
+    avatar = RelativeImageField(read_only=True)
+    profile = PublicProfileSerializer(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "login_id",
+            "first_name",
+            "last_name",
+            "full_name",
+            "email",
+            "phone",
+            "role",
+            "avatar",
+            "date_of_joining",
+            "company_name",
+            "profile",
+        ]
+        read_only_fields = fields
+
+
 class EmployeeDetailSerializer(serializers.ModelSerializer):
     """The full profile page: identity, work info, private info and bank details."""
 

@@ -4,12 +4,14 @@ export type EmployeeProfile = {
   manager: number | null;
   manager_name: string;
   location: string;
-  date_of_birth: string | null;
-  residing_address: string;
-  nationality: string;
-  personal_email: string;
-  gender: string;
-  marital_status: string;
+  // The private block is absent when an employee is looking at a colleague — the API
+  // omits these rather than blanking them, so they are optional here too.
+  date_of_birth?: string | null;
+  residing_address?: string;
+  nationality?: string;
+  personal_email?: string;
+  gender?: string;
+  marital_status?: string;
   about: string;
   what_i_love_about_my_job: string;
   interests_and_hobbies: string;
@@ -38,7 +40,8 @@ export type EmployeeDetail = {
   date_of_joining: string;
   company_name: string;
   profile: EmployeeProfile;
-  bank_detail: BankDetail;
+  // Only present for the employee themselves, an Admin or an HR Officer.
+  bank_detail?: BankDetail;
 };
 
 export type SalaryComponent = {
