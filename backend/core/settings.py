@@ -90,6 +90,21 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.IsAuthenticated",
     ),
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.ScopedRateThrottle",
+    ),
+    # Throttle counters live in the default cache, which is per-process in-memory here.
+    # A multi-worker deployment needs a shared cache (Redis or Memcached) or each worker
+    # keeps its own count and the effective limit multiplies.
+    "DEFAULT_THROTTLE_RATES": {
+        # Login IDs follow a predictable format, so an unthrottled sign-in endpoint is an
+        # open invitation to guess passwords. Ten attempts a minute is generous for a
+        # person mistyping and useless for a script.
+        "login": "10/min",
+        # Sign-up and password change are cheaper to abuse but still worth bounding.
+        "signup": "5/min",
+        "password_change": "10/min",
+    },
 }
 
 SIMPLE_JWT = {

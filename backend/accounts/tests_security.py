@@ -2,6 +2,7 @@
 
 from datetime import date
 
+from django.core.cache import cache
 from django.db import connection, transaction
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -290,3 +291,34 @@ class RelativeMediaUrlTests(TestCase):
 
     def test_a_missing_avatar_is_null(self):
         self.assertIsNone(self.client.get("/api/me/").data["avatar"])
+
+
+class LoginThrottleTests(TestCase):
+    """Login IDs follow a published format, so password guessing must be bounded."""
+
+    def setUp(self):
+        self.company = make_company()
+        self.user = make_user(self.company, "Asha", "Menon", role=Role.ADMIN)
+        self.client = APIClient()
+        cache.clear()
+
+    def tearDown(self):
+        # Throttle state lives in the cache; leaving it set would affect other tests.
+        cache.clear()
+
+    def attempt(self, password):
+        return self.client.post(
+            "/api/auth/login/",
+            {"login_id": self.user.login_id, "password": password},
+            format="json",
+        )
+
+    def test_repeated_failures_are_eventually_throttled(self):
+        statuses = [self.attempt("wrong").status_code for _ in range(12)]
+        self.assertIn(429, statuses)
+
+    def test_the_limit_allows_a_reasonable_number_of_mistakes(self):
+        """Someone mistyping a few times must not be locked out."""
+        for _ in range(5):
+            self.assertEqual(self.attempt("wrong").status_code, 401)
+        self.assertEqual(self.attempt("Str0ngPass!2026").status_code, 200)

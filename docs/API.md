@@ -90,6 +90,7 @@ The signed-in user.
 
 The directory. Every role may read it; results are always confined to the caller's company.
 Optional `?search=` matches name, login ID, email, job position and department.
+Deactivated employees are excluded unless `?include_inactive=true` is passed.
 
 ```json
 [{
@@ -102,6 +103,16 @@ Optional `?search=` matches name, login ID, email, job position and department.
 
 `work_status` is one of `present` (checked in today), `leave` (an approved request covers
 today) or `absent`.
+
+### `DELETE /employees/{id}/` — Admin, HR Officer
+
+Deactivates rather than deletes. The account stops working and drops out of the directory
+listing, but attendance, leave and salary records are kept — they are the evidence behind
+payslips already issued. `403` when aimed at your own account.
+
+### `POST /employees/{id}/reactivate/` — Admin, HR Officer
+
+Restores a deactivated employee.
 
 ### `POST /employees/` — Admin, HR Officer
 
@@ -159,12 +170,15 @@ Filters: `?date=YYYY-MM-DD`, `?month=YYYY-MM`, `?user={id}` (Admin/HR only).
 [{
   "id": 1, "employee_name": "Priya Nair", "login_id": "OIPRNA20240001",
   "date": "2026-08-21", "check_in": "2026-08-21T09:30:00+05:30",
-  "check_out": "2026-08-21T18:30:00+05:30", "work_hours": 9.0, "extra_hours": 1.0
+  "check_out": "2026-08-21T18:30:00+05:30",
+  "attended_hours": 9.0, "break_hours": "1.00", "work_hours": 8.0, "extra_hours": 0.0
 }]
 ```
 
-`work_hours` and `extra_hours` are derived from the timestamps, not stored. Extra hours are
-whatever exceeds an eight-hour day, and never negative.
+All four figures are derived from the timestamps, not stored. `attended_hours` is time on
+the premises; `work_hours` takes off the employee's configured break, so 09:30–18:30 with
+an hour's break is eight hours worked. `extra_hours` is whatever exceeds an eight-hour day,
+and never negative.
 
 ### `GET /attendance/today/`
 
@@ -307,6 +321,7 @@ absence.
 | 401 | Missing, expired or invalid token. |
 | 403 | Authenticated but not permitted — the role lacks access. |
 | 404 | No such record **or** it belongs to another company. The two are deliberately indistinguishable. |
+| 429 | Rate limited. Sign-in allows 10 attempts a minute, sign-up 5, password changes 10. |
 
 ## Tenant isolation
 

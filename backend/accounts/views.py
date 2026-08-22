@@ -9,6 +9,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .models import User
 from .permissions import CanManagePeople
@@ -41,6 +42,7 @@ class SignUpView(APIView):
     """Company sign-up: creates the company and its first Admin, then logs them in."""
 
     permission_classes = [AllowAny]
+    throttle_scope = "signup"
 
     def post(self, request):
         serializer = CompanySignUpSerializer(data=request.data)
@@ -67,6 +69,7 @@ class MeView(TenantScopedMixin, APIView):
 
 class ChangePasswordView(APIView):
     permission_classes = [IsAuthenticated]
+    throttle_scope = "password_change"
 
     def post(self, request):
         serializer = ChangePasswordSerializer(data=request.data, context={"request": request})
@@ -207,3 +210,14 @@ class EmployeeViewSet(TenantScopedViewSetMixin, viewsets.ModelViewSet):
             },
             status=status.HTTP_201_CREATED,
         )
+
+
+class ThrottledLoginView(TokenObtainPairView):
+    """Sign-in, rate limited.
+
+    Login IDs are generated to a published format, so anyone can enumerate plausible
+    ones. Without a limit, the only thing standing between an attacker and an account is
+    the password itself.
+    """
+
+    throttle_scope = "login"

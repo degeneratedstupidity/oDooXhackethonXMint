@@ -68,6 +68,10 @@ non-superuser role — so they fail if tenant isolation ever regresses.
 - **Field-level encryption** on bank and identity details (account number, IFSC, PAN, UAN).
 - Role and ownership checks in DRF permissions and serializers on every read and write path.
 - All input validated server-side; the client is never trusted.
+- Sign-in is rate limited, since login IDs follow a published format and would otherwise be
+  enumerable and guessable. Sign-up and password changes are bounded too.
+- Employees are deactivated, never deleted, so attendance and payroll history survives the
+  person leaving.
 
 ## Project layout
 
