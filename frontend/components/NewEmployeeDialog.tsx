@@ -62,6 +62,20 @@ export function NewEmployeeDialog({
     }
   }
 
+  // Escape closes the dialog, and the page behind it should not scroll while it is open.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
   const fieldErrors = error?.fields ?? {};
 
   return (

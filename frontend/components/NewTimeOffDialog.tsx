@@ -59,6 +59,20 @@ export function NewTimeOffDialog({
     }
   }
 
+  // Escape closes the dialog, and the page behind it should not scroll while it is open.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
+
   const fieldErrors = error?.fields ?? {};
 
   return (
@@ -70,7 +84,7 @@ export function NewTimeOffDialog({
     >
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
         noValidate
       >
         <h2 id="time-off-title" className="text-lg font-semibold text-ink-900">
