@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar } from "./Avatar";
+import { CheckInOut } from "./CheckInOut";
 import { useAuth } from "@/lib/auth";
 
 const NAV = [
@@ -75,6 +76,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+
+          <div className="mr-3 shrink-0">
+            <CheckInOut />
+          </div>
 
           <div className="relative shrink-0" ref={menuRef}>
             <button
