@@ -22,7 +22,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (loading) return;
+    if (!user) router.replace("/login");
+    // A generated password has to be replaced before the app is usable.
+    else if (user.must_change_password) router.replace("/change-password");
   }, [user, loading, router]);
 
   useEffect(() => {

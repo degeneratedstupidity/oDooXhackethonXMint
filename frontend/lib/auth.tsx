@@ -26,9 +26,9 @@ export type CurrentUser = {
 type AuthState = {
   user: CurrentUser | null;
   loading: boolean;
-  login: (loginId: string, password: string) => Promise<void>;
+  login: (loginId: string, password: string) => Promise<CurrentUser | null>;
   logout: () => void;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<CurrentUser | null>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -42,13 +42,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!getAccessToken()) {
       setUser(null);
       setLoading(false);
-      return;
+      return null;
     }
     try {
-      setUser(await apiFetch<CurrentUser>("/me/"));
+      const current = await apiFetch<CurrentUser>("/me/");
+      setUser(current);
+      return current;
     } catch {
       clearTokens();
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -68,7 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       );
       storeTokens(tokens);
-      await refreshUser();
+      return refreshUser();
     },
     [refreshUser],
   );

@@ -21,8 +21,8 @@ export default function LoginPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await login(loginId.trim(), password);
-      router.push("/employees");
+      const signedIn = await login(loginId.trim(), password);
+      router.push(signedIn?.must_change_password ? "/change-password" : "/employees");
     } catch (caught) {
       const apiError = caught as ApiError;
       // The token endpoint returns a generic 401; say something more useful.
