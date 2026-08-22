@@ -70,7 +70,9 @@ ciphertext is stored, not plaintext.
   e.g. `OIJODO20220001`, with a per-company, per-year sequence.
 - **Roles** — Admin, HR Officer, Employee, each with a different view of the system.
 - **Attendance** — check in/out, work hours and extra hours, day and month views.
-- **Time off** — request, approve/reject, per-type balances (paid, sick, unpaid).
+- **Time off** — request, approve/reject, per-type balances (paid, sick, unpaid), and a year
+  calendar. Hovering a day shows who is away, grouped by approved, awaiting a decision and
+  refused; Admin and HR see names, an employee sees only their own leave.
 - **Payroll** — salary structure with components auto-computed from the defined wage, PF and tax config.
   Visible to Admin only.
 

@@ -71,6 +71,21 @@ and HR each see 130 attendance rows and 6 time off requests, while an employee s
 | Checking in twice in one day | `You have already checked in today.` |
 | Checking out without checking in | `You have not checked in today.` |
 
+### Profile visibility
+
+Checked against the running API with each role's own token.
+
+| Viewer | Whose profile | `bank_detail` | Private info |
+| --- | --- | --- | --- |
+| Employee | A colleague | absent | absent |
+| Employee | Their own | present | present |
+| Admin | Anyone's | present | present |
+| HR Officer | Anyone's | present | present |
+
+Work information and the resume stay visible in every case, so a trimmed profile is still
+a usable directory entry. The fields are missing from the response body rather than
+blanked, so nothing sensitive is serialised for a viewer who may not see it.
+
 ### Cross-company isolation
 
 A second company was created and its administrator confirmed to see only their own
@@ -88,6 +103,10 @@ All render without a compile or runtime error: `/login`, `/signup`, `/change-pas
   768 / 1280 px have not been looked at by a person. The markup uses a single token
   palette and tables scroll inside their own container, but that is not a substitute for
   someone opening the pages.
+- **The leave calendar's day panel on a small screen.** It is positioned above the day and
+  is 224 px wide, so on a 375 px viewport a day near the left or right edge may push it
+  past the fold. Hover, keyboard focus and click-to-pin all work; only the placement at
+  the extremes is unchecked.
 - Uploading a real photograph or company logo through the browser file picker; the upload
   endpoint itself is verified with a generated PNG.
 - Behaviour when an access token expires mid-session.

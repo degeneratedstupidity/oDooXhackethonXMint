@@ -216,6 +216,11 @@ The company's leave types, seeded on sign-up.
 
 Employees see their own requests; Admin and HR see everyone's. Filters `?status=`, `?user=`.
 
+Each request carries `employee_name` and `type_name` alongside the dates and status, which
+is what the leave calendar uses to list the people away on a given day. Because Admin and
+HR receive the whole company's requests from this one call, the calendar needs no extra
+endpoint.
+
 ### `POST /time-off/`
 
 `multipart/form-data` when attaching a document.

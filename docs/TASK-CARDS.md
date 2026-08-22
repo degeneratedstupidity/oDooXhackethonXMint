@@ -52,7 +52,7 @@ the holidays exist in the database for that company only.
 
 ---
 
-## Card 2 — Employee card polish
+## Card 2 — Employee card polish — **done**
 
 **Why:** The directory is the landing page and the first thing a judge sees.
 
@@ -68,9 +68,13 @@ the holidays exist in the database for that company only.
 **Done when:** the grid looks right at 375px, 768px and 1280px with no horizontal page
 scroll.
 
+**Outcome:** avatar colour is derived from the name (`frontend/components/Avatar.tsx`) and
+the department pill is on the card. The responsive check at 375/768/1280px has not been
+done in a browser — see `docs/TEST-LOG.md`.
+
 ---
 
-## Card 3 — API documentation
+## Card 3 — API documentation — **done**
 
 **Why:** The README describes the product but not the API surface.
 
@@ -84,7 +88,7 @@ calling the API with `curl` against the seeded data rather than inventing them.
 
 ---
 
-## Card 4 — Manual test pass
+## Card 4 — Manual test pass — **partly done**
 
 **Why:** Nobody has clicked through every screen as every role.
 
@@ -96,3 +100,26 @@ every profile tab, changing a password. Record what you did and what happened. A
 broken or awkward goes in the file with the steps to reproduce it.
 
 **Done when:** every screen has been exercised as all three roles and the log is committed.
+
+**Outcome:** `docs/TEST-LOG.md` is written and every API path has been exercised as all
+three roles. What remains is the visual pass in a browser at 375/768/1280px, which is
+listed as outstanding at the end of that file.
+
+---
+
+## Card 5 — Leave calendar day detail — **done**
+
+**Why:** An Admin looking at the calendar could see that a day was shaded but not who was
+away, and the calendar kept only one request per date, so overlapping leave was hidden.
+
+**File:** `frontend/components/LeaveCalendar.tsx`
+
+1. Key each date to a list of requests rather than a single one.
+2. On hover or keyboard focus, show a panel listing the people away that day, grouped by
+   approved / to approve / refused. Click pins it open for touch screens.
+3. Show a count badge on days with more than one person.
+4. Names are for Admin and HR only — an employee's calendar only ever contains their own
+   leave.
+
+**Done when:** a day with several people shows all of them, in the right groups, and the
+panel is reachable by keyboard.
