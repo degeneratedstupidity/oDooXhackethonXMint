@@ -140,7 +140,14 @@ ciphertext is stored, not plaintext.
 ```
 backend/     Django project — API, models, migrations
 frontend/    Next.js app
+docs/        API reference, test log, task cards, project notes
 ```
+
+- `docs/API.md` — every endpoint, who may call it, request and response examples
+- `docs/PROJECT-NOTES.md` — how the system is built, the problems hit while building it
+  and how each was resolved
+- `docs/TEST-LOG.md` — what was exercised by hand, and what is still unverified
+- `docs/TASK-CARDS.md` — self-contained pieces of work and their outcomes
 
 ## Design decisions
 
